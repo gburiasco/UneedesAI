@@ -59,27 +59,31 @@ export async function generateQuizAction(formData: FormData) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite", });
 
     const prompt = `
-Sei un docente universitario esperto. Il tuo compito è creare un quiz basato ESCLUSIVAMENTE sul testo fornito qui sotto.
-NON inventare domande su argomenti non presenti nel testo.
+Sei un professore universitario che deve creare un esame.
+
+REGOLA ASSOLUTA: Devi generare ESATTAMENTE 10 domande. Non 9, non 11, non 26. DIECI.
 
 ISTRUZIONI:
-1. Analizza il testo fornito.
-2. Identifica i 10 concetti chiave più importanti.
-3. Crea 10 domande a risposta multipla (4 opzioni) basate SU QUESTI CONCETTI.
-4. Restituisci SOLO un JSON valido (array di oggetti).
+1. Leggi attentamente il testo sotto
+2. Identifica i 10 concetti più importanti
+3. Crea 1 domanda per ogni concetto (= 10 domande totali)
+4. Ogni domanda ha 4 opzioni (A, B, C, D)
+5. Restituisci SOLO il JSON, senza testo aggiuntivo
 
-FORMATO JSON RICHIESTO:
+FORMATO JSON (esatto):
 [
   {
-    "question": "Domanda...",
-    "options": ["A", "B", "C", "D"],
-    "answer": "Testo esatto dell'opzione corretta",
-    "tip": "Spiegazione breve",
-    "topic": "Argomento specifico"
+    "question": "Testo domanda...",
+    "options": ["Opzione A", "Opzione B", "Opzione C", "Opzione D"],
+    "answer": "Testo ESATTO dell'opzione corretta",
+    "tip": "Breve spiegazione (max 50 parole)",
+    "topic": "Nome argomento"
   }
 ]
 
-TESTO DI RIFERIMENTO:
+IMPORTANTE: Conta le domande prima di rispondere. Se ne hai più di 10, elimina le ultime.
+
+TESTO DA ANALIZZARE:
 ${truncatedText}
 `;
 

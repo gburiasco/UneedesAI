@@ -68,7 +68,7 @@ export default function DashboardPage() {
       setFilesError(null);
       const { data, error } = await supabase
         .from("files")
-        .select("id, filename, file_size, page_count, uploaded_at")
+        .select("id, filename, file_size, uploaded_at")
         .eq("user_id", userId)
         .order("uploaded_at", { ascending: false });
 
