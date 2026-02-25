@@ -118,17 +118,33 @@ ${truncatedText}
     }
 
     // 3) Salvataggio nel DB usando supabaseAdmin
-    const { data: fileRow, error: fileError } = await supabaseAdmin
-      .from("files")
-      .insert({
-        user_id: userId,
-        filename: file.name,
-        file_size: file.size,
-        extracted_text: truncatedText,
-        processed: true,
-      })
-      .select("id")
-      .single();
+    // 🔍 DEBUG: Prima dell'INSERT
+console.log("=== DEBUG SALVATAGGIO FILE ===");
+console.log("User ID:", userId);
+console.log("Filename:", file.name);
+console.log("Service Key OK:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+// INSERT File
+const { data: fileRow, error: fileError } = await supabaseAdmin
+  .from("files")
+  .insert({
+    user_id: userId,
+    filename: file.name,
+    file_size: file.size,
+    extracted_text: truncatedText,
+    processed: true,
+  })
+  .select("id")
+  .single();
+
+// 🔍 DEBUG: Risultato
+console.log("✅ File salvato:", fileRow);
+console.log("❌ Errore file:", fileError);
+
+if (fileError) {
+  console.error("Errore salvataggio file:", fileError);
+  return { success: true, quiz, saved: false };
+}
 
     if (fileError) {
       console.error("Errore salvataggio file:", fileError);
@@ -139,14 +155,26 @@ ${truncatedText}
       file_id: fileRow.id,
       user_id: userId,
       question_text: q.question,
-      question_type: "multiple_choice",
       options: q.options,
       correct_answer: q.answer,
       explanation: q.tip,
       topic: q.topic,
     }));
 
-    await supabaseAdmin.from("quiz_questions").insert(quizRows);
+    console.log("🔍 Tentativo salvataggio domande:", quizRows.length, "domande");
+
+const { data: quizData, error: quizError } = await supabaseAdmin
+  .from("quiz_questions")
+  .insert(quizRows)
+  .select();
+
+console.log("✅ Domande salvate:", quizData?.length);
+console.log("❌ Errore domande:", quizError);
+
+if (quizError) {
+  console.error("ERRORE CRITICO quiz_questions:", quizError);
+  return { success: true, quiz, saved: false, error: "Errore salvataggio domande" };
+}
 
     // --- 5. AGGIORNAMENTO CONTATORI ---
     // Se siamo arrivati qui, il salvataggio è riuscito. Aggiorniamo i limiti.
@@ -164,8 +192,6 @@ ${truncatedText}
     return { error: "Errore durante l'elaborazione del file." };
   }
 }
-
-// ... (Tutto il codice precedente rimane uguale)
 
 /**
  * GENERAZIONE INCREMENTALE (Punto 7)
@@ -262,7 +288,6 @@ ${fileRow.extracted_text.slice(0, 30000)}
       file_id: fileId,
       user_id: userId,
       question_text: q.question,
-      question_type: "multiple_choice",
       options: q.options,
       correct_answer: q.answer,
       explanation: q.tip,
