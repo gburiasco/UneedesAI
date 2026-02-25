@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { Header } from "../../components/header";
 import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../actions";
 import { PaywallModal } from "../../components/paywall-modal";
-import { Loader2, FileText, ChevronRight, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
+import { Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 type FileRow = {
@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [generating, setGenerating] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallReason, setPaywallReason] = useState<"daily" | null>(null);
+  const [isGraphExpanded, setIsGraphExpanded] = useState(false);
 
   // Dati File
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -475,51 +476,51 @@ const stats = useMemo(() => {
 
             {/* GRAFICO ARGOMENTI */}
             {stats && stats.chartData.length > 0 && (
-              <div className="mx-4 md:mx-6 mb-4 bg-slate-900/40 p-5 rounded-xl border border-white/5 animate-in fade-in slide-in-from-bottom-4">
-                <h3 className="text-sm font-semibold text-slate-300 mb-6 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-violet-400" />
-                  Andamento per Argomento
-                </h3>
-                <div className="h-[200px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
-                      <XAxis 
-                        dataKey="name" 
-                        stroke="#64748b" 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={false} 
-                      />
-                      <YAxis 
-                        stroke="#64748b" 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickFormatter={(val) => `${val}%`} 
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                        contentStyle={{ 
-                          backgroundColor: '#0f172a', 
-                          border: '1px solid rgba(255,255,255,0.1)', 
-                          borderRadius: '12px',
-                          color: '#f8fafc'
-                        }}
-                        formatter={(value: any) => [`${value}%`, 'Esatte']}
-                      />
-                      <Bar dataKey="score" radius={[6, 6, 0, 0]} maxBarSize={50}>
-                        {stats.chartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.score >= 80 ? '#10b981' : entry.score >= 50 ? '#f59e0b' : '#ef4444'} 
+                <div className="mx-4 md:mx-6 mb-4 bg-slate-900/40 rounded-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+                  
+                  {/* Bottone per aprire/chiudere */}
+                  <button
+                    onClick={() => setIsGraphExpanded(!isGraphExpanded)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-violet-400" />
+                      <h3 className="text-sm font-semibold text-slate-300">
+                        Andamento per Argomento
+                      </h3>
+                    </div>
+                    {isGraphExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-slate-500" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-500" />
+                    )}
+                  </button>
+  
+                  {/* Corpo del Grafico (visibile solo se espanso) */}
+                  {isGraphExpanded && (
+                    <div className="p-5 pt-0 h-[220px] w-full border-t border-white/5 mt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.chartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorViolet" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                            formatter={(value: any) => [`${value}%`, 'Esatte']}
                           />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                          <Bar dataKey="score" fill="url(#colorViolet)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
             {/* Fine Grafico */}
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
