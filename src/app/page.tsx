@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
 import { UploadCloud, CheckCircle2, XCircle, Lightbulb, ArrowRight, RefreshCw, Loader2, AlertCircle, Zap, Lock, Sparkles } from "lucide-react";
-import { generateQuizAction } from './actions';
+import { generateQuizAction, saveUserAnswerAction } from './actions';
 import { Header } from "../components/header";
 import { supabase } from "../lib/supabase";
 import { PaywallModal } from "../components/paywall-modal";
@@ -117,9 +117,30 @@ export default function Home() {
   }
 
   // --- LOGICA QUIZ UI ---
-  const handleOptionClick = (qIndex: number, option: string) => {
+  const handleOptionClick = async (qIndex: number, option: string) => {
     if (showResults) return;
+    
+    // 1. Aggiorna UI
     setUserAnswers(prev => ({ ...prev, [qIndex]: option }));
+  
+    // 2. Salva nel DB (solo se loggato E domanda ha ID reale)
+    if (!isLoggedIn || !quizData) return;
+  
+    const q = quizData[qIndex];
+    
+    // ✅ Verifica che la domanda abbia un ID reale (significa che è salvata nel DB)
+    if (!q.id) {
+      console.log("⚠️ Domanda senza ID - utente anonimo, skip salvataggio");
+      return;
+    }
+  
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+  
+    const isCorrect = option === q.answer;
+    
+    console.log("💾 Salvo risposta:", { questionId: q.id, option, isCorrect });
+    await saveUserAnswerAction(user.id, q.id, option, isCorrect);
   };
 
   const toggleTip = (idx: number) => {

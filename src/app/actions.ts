@@ -185,7 +185,22 @@ if (quizError) {
       // Non blocchiamo l'utente se fallisce l'aggiornamento del contatore, ma lo logghiamo
     }
 
-    return { success: true, quiz, saved: true, fileId: fileRow.id };
+    // Se loggato, ritorna le domande DAL DB (con ID), non dall'AI
+if (quizData && quizData.length > 0) {
+  // Trasforma in formato UI-friendly
+  const quizWithIds = quizData.map(q => ({
+    id: q.id, // ✅ ID REALE dal DB!
+    question: q.question_text,
+    options: q.options,
+    answer: q.correct_answer,
+    tip: q.explanation,
+    topic: q.topic
+  }));
+  return { success: true, quiz: quizWithIds, saved: true, fileId: fileRow.id };
+}
+
+// Fallback (non dovrebbe mai arrivare qui)
+return { success: true, quiz, saved: true, fileId: fileRow.id };
 
   } catch (error: any) {
     console.error("Errore generale:", error);
