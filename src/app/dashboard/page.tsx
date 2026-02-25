@@ -6,7 +6,8 @@ import { supabase } from "../../lib/supabase";
 import { Header } from "../../components/header";
 import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../actions";
 import { PaywallModal } from "../../components/paywall-modal";
-import { Loader2, FileText, ChevronRight, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles } from "lucide-react";
+import { Loader2, FileText, ChevronRight, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 type FileRow = {
   id: string;
@@ -410,8 +411,8 @@ const stats = useMemo(() => {
                 </button>
               </div>
             )}
-            {/* BARRA PROGRESSI */}
-            {/* BARRA PROGRESSI MODIFICATA */}
+
+            {/* BARRA PROGRESSI nuova */}
             {stats && stats.total > 0 && (
               <div className="flex flex-col gap-3 mb-4 mx-4 md:mx-6 mt-4 md:mt-0">
                 
@@ -471,6 +472,56 @@ const stats = useMemo(() => {
               </div>
             )}
             {/* Fine Barra Progressi */}
+
+            {/* GRAFICO ARGOMENTI */}
+            {stats && stats.chartData.length > 0 && (
+              <div className="mx-4 md:mx-6 mb-4 bg-slate-900/40 p-5 rounded-xl border border-white/5 animate-in fade-in slide-in-from-bottom-4">
+                <h3 className="text-sm font-semibold text-slate-300 mb-6 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-violet-400" />
+                  Andamento per Argomento
+                </h3>
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#64748b" 
+                        fontSize={12} 
+                        tickLine={false} 
+                        axisLine={false} 
+                      />
+                      <YAxis 
+                        stroke="#64748b" 
+                        fontSize={12} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickFormatter={(val) => `${val}%`} 
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        contentStyle={{ 
+                          backgroundColor: '#0f172a', 
+                          border: '1px solid rgba(255,255,255,0.1)', 
+                          borderRadius: '12px',
+                          color: '#f8fafc'
+                        }}
+                        formatter={(value: any) => [`${value}%`, 'Esatte']}
+                      />
+                      <Bar dataKey="score" radius={[6, 6, 0, 0]} maxBarSize={50}>
+                        {stats.chartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.score >= 80 ? '#10b981' : entry.score >= 50 ? '#f59e0b' : '#ef4444'} 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+            {/* Fine Grafico */}
+
             <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
               {!selectedFileId ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500">
