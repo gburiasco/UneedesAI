@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { Header } from "../../components/header";
 import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../actions";
 import { PaywallModal } from "../../components/paywall-modal";
-import { Loader2, FileText, ChevronRight, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw } from "lucide-react";
+import { Loader2, FileText, ChevronRight, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles } from "lucide-react";
 
 type FileRow = {
   id: string;
@@ -139,6 +139,7 @@ const stats = useMemo(() => {
   
   let correctCount = 0;
   let answeredCount = 0;
+  let currentStreak = 0;
   
   // Mappa per argomenti: { "Matematica": { total: 10, correct: 8 } }
   let topicStats: { [key: string]: { total: number; correct: number } } = {};
@@ -151,12 +152,15 @@ const stats = useMemo(() => {
     
     if (answer) {
       answeredCount++;
-      topicStats[topic].total++; // Contiamo solo se risposte, o vuoi contare tutte? Qui conto le risposte date.
+      topicStats[topic].total++; 
       
       const isCorrect = answer === q.correct_answer;
       if (isCorrect) {
         correctCount++;
         topicStats[topic].correct++;
+        currentStreak++;
+      } else {
+        currentStreak = 0; // <--- Azzera la serie se sbaglia
       }
     }
   });
@@ -174,6 +178,17 @@ const stats = useMemo(() => {
   const bestTopic = [...chartData].sort((a,b) => b.score - a.score)[0];
   const worstTopic = [...chartData].sort((a,b) => a.score - b.score)[0];
 
+  let feedback = "Rispondi a qualche domanda per la tua analisi.";
+  if (answeredCount > 0) {
+    if (score >= 80) {
+      feedback = `Ottimo lavoro! Sei un asso in ${bestTopic?.name || 'tutto'}, continua così! 🔥`;
+    } else if (score >= 50) {
+      feedback = `Buon andamento! Vai forte in ${bestTopic?.name || 'alcuni argomenti'}, ma occhio a ${worstTopic?.name || 'certe domande'}. 📚`;
+    } else {
+      feedback = `C'è margine di miglioramento. Ti consiglio di ripassare bene ${worstTopic?.name || 'gli appunti'}. 💪`;
+    }
+  }
+
   return { 
     total: questions.length, 
     answered: answeredCount, 
@@ -181,7 +196,9 @@ const stats = useMemo(() => {
     score, 
     chartData,
     bestTopic,
-    worstTopic
+    worstTopic,
+    streak: currentStreak, // Passiamo la serie
+    feedback               // Passiamo il messaggio
   };
 }, [questions, userAnswers]);
 
@@ -394,40 +411,66 @@ const stats = useMemo(() => {
               </div>
             )}
             {/* BARRA PROGRESSI */}
+            {/* BARRA PROGRESSI MODIFICATA */}
             {stats && stats.total > 0 && (
-              <div className="grid grid-cols-3 gap-4 bg-slate-800/50 p-3 rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${stats.score >= 60 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                    <Trophy className="w-5 h-5" />
+              <div className="flex flex-col gap-3 mb-4 mx-4 md:mx-6 mt-4 md:mt-0">
+                
+                {/* Griglia a 4 colonne */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-800/50 p-3 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${stats.score >= 60 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Punteggio</p>
+                      <p className="text-lg font-bold text-white">{stats.score}%</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">Punteggio</p>
-                    <p className="text-lg font-bold text-white">{stats.score}%</p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Completato</p>
+                      <p className="text-lg font-bold text-white">{stats.answered}/{stats.total}</p>
+                    </div>
+                  </div>
+
+                  {/* NUOVO: La Serie (Streak) */}
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${stats.streak >= 3 ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-slate-700/50 text-slate-400'}`}>
+                      <Flame className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Serie</p>
+                      <p className="text-lg font-bold text-white">{stats.streak} <span className="text-xs font-normal text-slate-500">di fila</span></p>
+                    </div>
+                  </div>
+
+                  <div className="hidden md:flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-red-500/10 text-red-400">
+                      <PieChart className="w-5 h-5" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Da ripassare</p>
+                      <p className="text-xs font-medium text-slate-200 truncate">
+                        {stats.worstTopic ? stats.worstTopic.name : "Tutto ok! 🎉"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                    <Target className="w-5 h-5" />
+
+                {/* NUOVO: Banner del Feedback Mirato */}
+                {stats.answered > 0 && (
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 p-3 rounded-xl text-sm flex items-start md:items-center gap-3 animate-in fade-in">
+                    <Sparkles className="w-5 h-5 flex-shrink-0 text-indigo-400 mt-0.5 md:mt-0" />
+                    <p className="font-medium">{stats.feedback}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">Completato</p>
-                    <p className="text-lg font-bold text-white">{stats.answered}/{stats.total}</p>
-                  </div>
-                </div>
-                <div className="hidden md:flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-red-500/10 text-red-400">
-                    <PieChart className="w-5 h-5" />
-                  </div>
-                  <div className="hidden md:block overflow-hidden">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">Da ripassare</p>
-                    <p className="text-xs font-medium text-slate-200 truncate">
-                      {/* Se esiste un worstTopic, mostriamo il nome, altrimenti "Tutto ok" */}
-                      {stats.worstTopic ? stats.worstTopic.name : "Tutto ok! 🎉"}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             )}
+            {/* Fine Barra Progressi */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
               {!selectedFileId ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500">
