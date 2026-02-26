@@ -93,7 +93,7 @@ export default function DashboardPage() {
   };
 
   // --- ESPORTAZIONE PDF PROFESSIONALE ---
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!questions.length) return;
 
     const doc = new jsPDF();
@@ -220,8 +220,41 @@ export default function DashboardPage() {
     });
 
     // Salva il file
-    const safeName = (selectedFile?.filename || "Quiz").replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    doc.save(`${safeName}_uneedes.pdf`);
+    // --- SALVATAGGIO (Versione Premium Mobile-First) ---
+    const rawName = selectedFile?.filename || "Documento";
+    const cleanName = rawName.replace(/\.[^/.]+$/, "").replace(/[\\/:*?"<>|]/g, "").trim();
+    const fileName = `${cleanName} - Quiz by Uneedes.pdf`;
+
+    // 1. Trasformiamo il PDF in dati grezzi (Blob) invece di forzare il download
+    const pdfBlob = doc.output('blob');
+
+    // 2. Capiamo se l'utente è su uno smartphone/tablet
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      try {
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        
+        // Controlliamo se il telefono supporta il menu di condivisione nativo
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+          });
+        } else {
+          // Fallback per telefoni più vecchi: apre il PDF nel lettore nativo del telefono
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          window.open(pdfUrl, '_blank');
+        }
+      } catch (error) {
+        // Se l'utente chiude la tendina o c'è un errore, tentiamo il download classico
+        console.log("Condivisione annullata o non supportata", error);
+        doc.save(fileName);
+      }
+    } else {
+      // Su PC usiamo il salvataggio classico che funziona sempre
+      doc.save(fileName);
+    }
   };
 
   // 1. Check Auth
