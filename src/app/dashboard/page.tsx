@@ -7,7 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { Header } from "../../components/header";
 import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../actions";
 import { PaywallModal } from "../../components/paywall-modal";
-import { Eraser, Download, Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
+import { X, Eraser, Download, Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 type FileRow = {
@@ -32,6 +32,8 @@ export default function DashboardPage() {
   const router = useRouter();
 
   // Stati Auth & UI
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showFileDrawer, setShowFileDrawer] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -305,6 +307,15 @@ export default function DashboardPage() {
     loadQuestions();
   }, [selectedFileId, userId]);
 
+  // Mostra bottone scroll-to-top quando scrolli
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      setShowScrollTop(scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // --- CALCOLO STATISTICHE AVANZATE ---
   const stats = useMemo(() => {
@@ -485,6 +496,113 @@ export default function DashboardPage() {
       <Header />
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} reason={paywallReason} />
 
+      {/* --- DRAWER LATERALE FILE (Apple iOS Premium Style) --- */}
+      <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-500 ease-in-out ${showFileDrawer ? 'visible' : 'invisible'}`}>
+        {/* Backdrop (Vetro scuro) */}
+        <div onClick={() => setShowFileDrawer(false)} className={`absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-500 ease-out ${showFileDrawer ? 'opacity-100' : 'opacity-0'}`}/>
+
+        {/* Pannello Drawer */}
+        <div className={`absolute top-0 left-0 h-full w-[85vw] max-w-[360px] bg-[#0B0F19]/80 backdrop-blur-2xl border-r border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.6)] flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] ${showFileDrawer ? 'translate-x-0' : '-translate-x-full'}`}
+        >
+          {/* Header Minimalista */}
+          <div className="pt-8 pb-4 px-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Documenti</h2>
+              <p className="text-xs font-medium text-slate-400 mt-1">{files.length} file caricati</p>
+            </div>
+            <button
+              onClick={() => setShowFileDrawer(false)}
+              className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Lista File Scorrevole */}
+          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2.5 custom-scrollbar">
+            {filesLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4">
+                <Loader2 className="w-7 h-7 animate-spin text-violet-500" />
+                <span className="text-sm font-medium">Sincronizzazione in corso...</span>
+              </div>
+            ) : files.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
+                  <FileText className="w-8 h-8 text-slate-500" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-base text-slate-200 font-semibold">Il tuo archivio è vuoto</h3>
+                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                  Torna alla Home per caricare il tuo primo documento e iniziare a studiare.
+                </p>
+              </div>
+            ) : (
+              <ul className="space-y-2 pb-4">
+                {files.map((file) => {
+                  const isActive = file.id === selectedFileId;
+                  return (
+                    <li key={file.id} className="relative group flex items-center gap-2">
+
+                      {/* Card File Interattiva */}
+                      <button
+                        onClick={() => {
+                          setSelectedFileId(file.id);
+                          setShowFileDrawer(false);
+                        }}
+                        className={`flex-1 min-w-0 text-left flex items-center gap-3.5 p-3 rounded-[20px] border transition-all duration-200 active:scale-[0.98] ${isActive
+                            ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
+                            : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
+                          }`}
+                      >
+                        {/* Icona Appunto/Documento (Sostituisce la scritta PDF) */}
+                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-inner ${isActive
+                            ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30'
+                            : 'bg-white/5 text-slate-400 border border-white/5'
+                          }`}>
+                          <FileText className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
+                        </div>
+
+                        {/* Testi (Nome File e Data) */}
+                        <div className="flex flex-col flex-1 min-w-0 pr-2">
+                          <span className={`text-sm truncate transition-colors ${isActive ? 'font-bold text-white' : 'font-medium text-slate-200'}`}>
+                            {file.filename}
+                          </span>
+                          <span className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+                            {new Date(file.uploaded_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        {/* Indicatore Attivo */}
+                        {isActive && <ChevronRight className="w-4 h-4 text-violet-400 flex-shrink-0 mr-1" />}
+                      </button>
+
+                      {/* Bottone Cestino Esterno (Subdolo, si accende al passaggio/tocco) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFile(file.id);
+                        }}
+                        className="flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90"
+                        title="Elimina file"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={2} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Footer Brandizzato Uneedes */}
+          <div className="mt-auto p-5 border-t border-white/5 bg-gradient-to-t from-slate-950/80 to-transparent">
+            <div className="flex items-center justify-center gap-2 text-slate-400/80 hover:text-slate-300 transition-colors cursor-default">
+              <Sparkles className="w-4 h-4 text-violet-400" />
+              <span className="text-xs font-semibold uppercase tracking-widest">Uneedes AI</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <main className="z-10 flex-1 flex flex-col pt-8 px-4 pb-16 max-w-6xl mx-auto w-full gap-6">
 
         {/* Header Dashboard */}
@@ -506,84 +624,94 @@ export default function DashboardPage() {
         {/* GRIGLIA PRINCIPALE RESPONSIVE */}
         <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)] gap-6 h-auto lg:h-[calc(100vh-200px)] min-h-[500px]">
 
-          {/* --- MOBILE: BOTTONE MENU FILE --- */}
-          <div className="lg:hidden block w-full">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-full flex items-center justify-between p-4 bg-slate-900/80 border border-white/10 rounded-2xl text-slate-200 font-semibold backdrop-blur-md transition-all active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3 truncate">
-                <FileText className="w-5 h-5 text-violet-400 flex-shrink-0" />
-                <span className="truncate">{selectedFile ? selectedFile.filename : "Seleziona un file"}</span>
+          {/* COLONNA SINISTRA: LISTA FILE (Desktop Premium UI) */}
+          <section className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl flex-col overflow-hidden hidden lg:flex h-full">
+            
+            {/* Header Desktop Elegante */}
+            <div className="p-5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl shadow-md shadow-violet-900/40">
+                  <FileText className="w-4 h-4 text-white" />
+                </div>
+                <h2 className="text-base font-bold text-white tracking-tight">I tuoi documenti</h2>
               </div>
-              {isMobileMenuOpen ? <ChevronUp className="w-5 h-5 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 flex-shrink-0" />}
-            </button>
-          </div>
-
-          {/* COLONNA SINISTRA: LISTA FILE (Desktop sempre visibile, Mobile a scomparsa) */}
-          <section className={`bg-slate-900/70 border border-white/10 rounded-2xl flex-col overflow-hidden transition-all ${isMobileMenuOpen ? 'flex h-[400px] lg:h-auto' : 'hidden lg:flex'
-            }`}>
-            <div className="p-4 border-b border-white/5 bg-slate-900/50">
-              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-violet-400" />
-                I tuoi file ({files.length})
-              </h2>
+              <span className="text-xs font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-white/5">
+                {files.length}
+              </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+            {/* Lista File Scorrevole */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
               {filesLoading ? (
-                <div className="flex items-center justify-center py-8 text-slate-400 text-sm gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Caricamento...
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
+                  <span className="text-sm font-medium">Caricamento in corso...</span>
                 </div>
               ) : filesError ? (
-                <p className="p-4 text-sm text-red-400 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> {filesError}
-                </p>
+                <div className="p-4 m-2 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" /> {filesError}
+                </div>
               ) : files.length === 0 ? (
-                <div className="p-6 text-center text-sm text-slate-400">
-                  Non hai ancora file.<br />Vai in Home per caricarne uno!
+                <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                  <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
+                    <FileText className="w-8 h-8 text-slate-500" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-base text-slate-200 font-semibold">Il tuo archivio è vuoto</h3>
+                  <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                    Vai in Home per caricarne uno e iniziare a studiare!
+                  </p>
                 </div>
               ) : (
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {files.map((file) => {
                     const isActive = file.id === selectedFileId;
                     return (
-                      <li key={file.id} className="relative flex items-center gap-2">
+                      <li key={file.id} className="relative group flex items-center gap-2">
+                        
+                        {/* Card File Interattiva */}
                         <button
-                          onClick={() => {
-                            setSelectedFileId(file.id);
-                            setIsMobileMenuOpen(false); // Chiude menu su mobile
-                          }}
-                          className={`flex-1 text-left flex items-center gap-3 px-3 py-3 rounded-xl border text-sm transition-all ${isActive
-                            ? "border-violet-500/50 bg-violet-500/10 text-white shadow-lg shadow-violet-900/20"
-                            : "border-transparent hover:bg-slate-800/70 hover:border-white/5 text-slate-300"
-                            }`}
+                          onClick={() => setSelectedFileId(file.id)}
+                          className={`flex-1 min-w-0 text-left flex items-center gap-3.5 p-3 rounded-[20px] border transition-all duration-200 active:scale-[0.98] ${
+                            isActive
+                              ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
+                              : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
+                          }`}
                         >
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${isActive ? 'bg-violet-600 shadow-lg shadow-violet-600/30' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
-                              }`}>
-                              PDF
-                            </div>
-                            <div className="flex flex-col overflow-hidden max-w-[180px] md:max-w-[250px] relative">
-                              <span className="font-medium whitespace-nowrap">{file.filename}</span>
-                              <div className="absolute right-0 top-0 h-5 w-8 bg-gradient-to-l from-slate-900 to-transparent pointer-events-none" />
-                              <span className="text-[10px] text-slate-500">
-                                {new Date(file.uploaded_at).toLocaleDateString()}
-                              </span>
-                            </div>
+                          {/* Icona Appunto/Documento (Apple Style) */}
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-inner ${
+                            isActive 
+                              ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30' 
+                              : 'bg-white/5 text-slate-400 border border-white/5 group-hover:text-slate-300'
+                          }`}>
+                            <FileText className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
                           </div>
-                          {isActive && <ChevronRight className="w-4 h-4 text-violet-400 flex-shrink-0 ml-auto" />}
+
+                          {/* Testi (Nome File e Data con taglio intelligente) */}
+                          <div className="flex flex-col flex-1 min-w-0 pr-2">
+                            <span className={`text-sm truncate transition-colors ${isActive ? 'font-bold text-white' : 'font-medium text-slate-200'}`}>
+                              {file.filename}
+                            </span>
+                            <span className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
+                              Caricato il {new Date(file.uploaded_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                          
+                          {/* Indicatore Attivo */}
+                          {isActive && <ChevronRight className="w-4 h-4 text-violet-400 flex-shrink-0 mr-1" />}
                         </button>
 
+                        {/* Bottone Cestino Esterno (Magia Desktop: Appare solo all'hover o se è attivo) */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteFile(file.id);
                           }}
-                          className="flex-shrink-0 p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                          className={`flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90 ${
+                            isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          }`}
                           title="Elimina file"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" strokeWidth={2} />
                         </button>
                       </li>
                     );
@@ -591,55 +719,66 @@ export default function DashboardPage() {
                 </ul>
               )}
             </div>
+            
+            {/* Piccolo Footer Sfumato inferiore (Opzionale, dà un tocco di chiusura) */}
+            <div className="h-4 w-full bg-gradient-to-t from-slate-900/60 to-transparent pointer-events-none absolute bottom-0"></div>
           </section>
 
-          {/* COLONNA DESTRA: QUIZ (resto del codice rimane identico) */}
+          {/* COLONNA DESTRA: QUIZ */}
           <section className="bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col overflow-hidden relative min-h-[600px] lg:min-h-0">
 
-            {/* Header Quiz: UNIFIED DESIGN - Mobile = Desktop */}
+            {/* Header Quiz: MOBILE 2 RIGHE + DESKTOP 1 RIGA */}
             {selectedFile && (
               <div className="sticky top-0 z-20 backdrop-blur-xl bg-slate-900/70 border-b border-white/5">
 
-                {/* Layout Unificato - 1 Riga per Tutti */}
-                <div className="flex items-center justify-between px-3 md:px-5 py-2.5 gap-2 md:gap-4">
+                {/* MOBILE: 2 Righe Separate */}
+                <div className="lg:hidden flex flex-col p-3 gap-2.5">
 
-                  {/* Sinistra: Titolo + Info */}
-                  <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                    <div className="w-6 h-6 md:w-7 md:h-7 bg-violet-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-3 h-3 md:w-3.5 md:h-3.5 text-violet-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-xs md:text-sm font-semibold text-white truncate">
-                        {selectedFile.filename}
-                      </h2>
-                      <p className="text-[9px] md:text-[10px] text-slate-500 font-medium">
-                        {questions.length} domande • {stats?.answered || 0} completate
-                      </p>
+                  {/* Riga 1: Menu Hamburger + Titolo */}
+                  <div className="flex items-center gap-2">
+                    {/* Hamburger Menu */}
+                    <button
+                      onClick={() => setShowFileDrawer(true)}
+                      className="p-2 bg-slate-800/50 hover:bg-slate-700/60 rounded-lg transition-all active:scale-95 flex-shrink-0"
+                    >
+                      <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </button>
+
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="w-7 h-7 bg-violet-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-3.5 h-3.5 text-violet-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-sm font-semibold text-white truncate leading-tight">
+                          {selectedFile.filename}
+                        </h2>
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {questions.length} domande • {stats?.answered || 0} fatte
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Streak Badge */}
+                    {/* Streak */}
                     {streak > 0 && (
-                      <div className="hidden sm:flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full flex-shrink-0">
-                        <Flame className={`w-3.5 h-3.5 ${streak >= 3 ? 'animate-bounce text-orange-400' : 'text-orange-400'}`} />
+                      <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                        <Flame className="w-3 h-3 text-orange-400" />
                         <span className="text-xs font-bold text-orange-400">{streak}</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Destra: Azioni in Linea */}
-                  <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+                  {/* Riga 2: Azioni Ben Spaziate */}
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
 
-                    {/* PDF - Solo Icona */}
-                    <button
-                      onClick={handleExportPDF}
-                      className="p-2 bg-slate-800/40 hover:bg-slate-700/60 rounded-lg transition-all active:scale-95 flex-shrink-0"
-                      title="Scarica PDF"
-                    >
-                      <Download className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 hover:text-slate-300" />
+                    {/* PDF */}
+                    <button onClick={handleExportPDF} className="flex items-center justify-center w-7 h-7 bg-slate-800/40 hover:bg-slate-700/60 border border-white/5 rounded-lg transition-all active:scale-95 flex-shrink-0" title="Scarica PDF">
+                      <Download className="w-3.5 h-3.5 md:w-4 md:h4 text-slate-400 hover:text-slate-300" />
                     </button>
 
-                    {/* Pillola Errori/Reset Compatta */}
-                    <div className="flex items-center bg-slate-800/40 rounded-lg p-0.5 gap-0.5 flex-shrink-0">
+                    {/* Errori/Reset */}
+                    <div className="flex items-center bg-slate-800/50 rounded-lg p-0.5 gap-0.5">
                       {stats && stats.answered > 0 && stats.answered > stats.correct && (
                         <>
                           <button
@@ -661,38 +800,71 @@ export default function DashboardPage() {
                       </button>
                     </div>
 
-                    {/* +10 Domande HERO - SEMPRE GRANDE E VISIBILE */}
-                    <button
-                      onClick={handleGenerateMore}
-                      disabled={generating}
-                      className="relative group flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-lg transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-900/40 hover:shadow-xl hover:shadow-violet-900/60 flex-shrink-0 overflow-hidden"
-                    >
+                    {/* +10 Domande HERO */}
+                    <button onClick={handleGenerateMore} disabled={generating} className="relative group flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-lg transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-900/40 hover:shadow-xl hover:shadow-violet-900/60 flex-shrink-0 overflow-hidden">
                       {/* Shimmer effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-
-                      {generating ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-white relative z-10" />
-                      ) : (
-                        <Plus className="w-4 h-4 text-white relative z-10" />
-                      )}
-                      <span className="text-xs md:text-sm font-bold text-white whitespace-nowrap relative z-10">
-                        +10 Domande
-                      </span>
+                      {generating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Plus className="w-4 h-4 text-white" />}
+                      <span className="text-xs font-semibold text-white">10 Domande</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Streak Mobile (Solo se nascosto sopra) */}
-                {streak > 0 && (
-                  <div className="sm:hidden flex justify-center pb-2 px-3">
-                    <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-3 py-1 rounded-full">
-                      <Flame className={`w-3 h-3 ${streak >= 3 ? 'animate-bounce text-orange-400' : 'text-orange-400'}`} />
-                      <span className="text-xs font-bold text-orange-400">{streak} in serie!</span>
+                {/* DESKTOP: 1 Riga Orizzontale */}
+                <div className="hidden lg:flex items-center justify-between px-5 py-2.5 gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-7 h-7 bg-violet-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-violet-400" />
                     </div>
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold text-white truncate max-w-[400px]">
+                        {selectedFile.filename}
+                      </h2>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        {questions.length} domande • {stats?.answered || 0} completate
+                      </p>
+                    </div>
+                    {streak > 0 && (
+                      <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full">
+                        <Flame className={`w-3.5 h-3.5 ${streak >= 3 ? 'animate-bounce text-orange-400' : 'text-orange-400'}`} />
+                        <span className="text-xs font-bold text-orange-400">{streak}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleExportPDF} className="p-2 bg-slate-800/40 hover:bg-slate-700/60 rounded-lg transition-all">
+                      <Download className="w-4 h-4 text-slate-400" />
+                    </button>
+                    <div className="flex items-center bg-slate-800/40 rounded-lg p-0.5 gap-0.5">
+                      {stats && stats.answered > 0 && stats.answered > stats.correct && (
+                        <>
+                          <button onClick={handleRetryErrors} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 rounded-md transition-all">
+                            <Eraser className="w-3.5 h-3.5 text-orange-400" />
+                            <span className="text-xs font-medium text-orange-300">Errori</span>
+                          </button>
+                          <div className="w-px h-4 bg-white/10" />
+                        </>
+                      )}
+                      <button onClick={handleResetQuiz} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/5 rounded-md transition-all">
+                        <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-xs font-medium text-slate-300">Reset</span>
+                      </button>
+                    </div>
+                    <button onClick={handleGenerateMore} disabled={generating} className="relative group flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-lg transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-900/40 hover:shadow-xl hover:shadow-violet-900/60 flex-shrink-0 overflow-hidden">
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                      {generating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Plus className="w-4 h-4 text-white" />}
+                      <span className="text-xs font-semibold text-white">10 Domande</span>
+                    </button>
+                  </div>
+
+                </div>
               </div>
             )}
+
+            {/* BARRA PROGRESSI E RESTO DEL CODICE... */}
 
             {/* BARRA PROGRESSI MODIFICATA (Spazi ravvicinati) */}
             {stats && stats.total > 0 && (
@@ -794,57 +966,113 @@ export default function DashboardPage() {
             )}
             {/* Fine Grafico */}
 
+            {/* CORPO DOMANDE (Design Compatto + Effetto Hover Dinamico) */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
               {!selectedFileId ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                  <FileText className="w-12 h-12 mb-4 opacity-20" />
-                  <p>Seleziona un file per vedere le domande.</p>
+                /* Empty State */
+                <div className="h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-500">
+                  <div className="w-20 h-20 rounded-[1.5rem] bg-white/[0.02] border border-white/5 shadow-xl flex items-center justify-center mb-5">
+                    <FileText className="w-8 h-8 text-slate-600" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-lg font-bold text-white tracking-tight">Nessun documento selezionato</h3>
+                  <p className="text-slate-400 mt-2 max-w-sm text-sm">
+                    Scegli un file dalla libreria a sinistra per visualizzare il quiz.
+                  </p>
                 </div>
               ) : questionsLoading ? (
-                <div className="flex items-center justify-center py-20 text-slate-400 text-sm gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
-                  <span>Caricamento domande...</span>
+                /* Caricamento */
+                <div className="h-full flex flex-col items-center justify-center py-20 text-slate-400 gap-4 animate-in fade-in">
+                  <Loader2 className="w-7 h-7 animate-spin text-violet-500" />
+                  <span className="text-sm font-medium tracking-wide">Generazione in corso...</span>
                 </div>
               ) : questionsError ? (
-                <p className="text-red-400 flex items-center justify-center gap-2 mt-10"><AlertCircle className="w-5 h-5" /> {questionsError}</p>
+                /* Errore */
+                <div className="p-5 mt-10 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col items-center text-center animate-in fade-in">
+                  <AlertCircle className="w-8 h-8 text-red-400 mb-2" /> 
+                  <p className="text-red-400/90 text-sm font-medium">{questionsError}</p>
+                </div>
               ) : questions.length === 0 ? (
-                <div className="text-center py-10 text-slate-400">
-                  <p>Nessuna domanda trovata.</p>
-                  <button onClick={handleGenerateMore} className="text-violet-400 hover:underline mt-2">Generane subito 10 nuove!</button>
+                /* Nessuna Domanda */
+                <div className="h-full flex flex-col items-center justify-center text-center py-10 animate-in fade-in">
+                  <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-white/5">
+                    <Sparkles className="w-6 h-6 text-violet-500" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-200">Pronto per iniziare?</h3>
+                  <p className="text-slate-400 text-sm mt-1 mb-5">Non ci sono ancora domande per questo file.</p>
+                  <button 
+                    onClick={handleGenerateMore} 
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-full text-white font-semibold text-sm shadow-md transition-all active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" /> Genera le prime 10
+                  </button>
                 </div>
               ) : (
-                <div className="space-y-6">
+                /* LISTA DOMANDE (Compatta) */
+                <div className="space-y-5 max-w-3xl mx-auto pb-10">
                   {questions.map((q, index) => {
-                    // Logica stato risposta
                     const userAnswer = userAnswers[q.id];
                     const hasAnswered = !!userAnswer;
                     const isCorrect = userAnswer === q.correct_answer;
 
                     return (
-                      <div key={q.id} className="bg-slate-900 border border-white/5 rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2">
-
-                        {/* Testo Domanda */}
-                        <div className="flex gap-3 mb-4">
-                          <span className="bg-slate-800 text-slate-400 font-mono text-xs px-2 py-1 rounded-lg h-fit">#{index + 1}</span>
-                          <div>
-                            <p className="text-base font-medium text-slate-100">{q.question_text}</p>
-                            {q.topic && <span className="text-[10px] text-slate-500 uppercase tracking-wider mt-1 block">{q.topic}</span>}
+                      <div 
+                        key={q.id} 
+                        className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+                        style={{ animationDelay: `${index * 40}ms` }}
+                      >
+                        {/* --- INTESTAZIONE DOMANDA (Adattiva Mobile/Desktop) --- */}
+                        <div className="flex flex-col md:flex-row md:items-start gap-2.5 md:gap-4 mb-4 md:mb-5">
+                          
+                          {/* RIGA 1 (Mobile) / SINISTRA (PC): Badge Numerico */}
+                          <div className="flex items-center gap-3 md:mt-0.5 md:flex-shrink-0">
+                            <div className="w-6 h-6 md:w-7 md:h-7 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-bold font-mono shadow-inner flex-shrink-0">
+                              {index + 1}
+                            </div>
+                            
+                            {/* Argomento: Mostrato a fianco del numero SOLO su telefono */}
+                            {q.topic && (
+                              <span className="md:hidden inline-block text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                                {q.topic}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* RIGA 2 (Mobile) / DESTRA (PC): Testo Domanda */}
+                          <div className="flex-1 w-full mt-1 md:mt-0">
+                            
+                            {/* Argomento: Mostrato sopra la domanda SOLO su PC */}
+                            {q.topic && (
+                              <span className="hidden md:inline-block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                                {q.topic}
+                              </span>
+                            )}
+                            <h3 className="text-sm md:text-base font-medium text-slate-100 leading-snug">
+                              {q.question_text}
+                            </h3>
                           </div>
                         </div>
 
-                        {/* Opzioni */}
-                        <div className="grid gap-2 pl-0 md:pl-10">
+                        {/* --- GRIGLIA OPZIONI --- */}
+                        {/* Su mobile parte dal margine (ml-0), su PC rientra (md:ml-11) per allinearsi al testo */}
+                        <div className="grid gap-1.5 ml-0 md:ml-11">
                           {q.options.map((opt) => {
                             const isSelected = userAnswer === opt;
                             const isTheCorrectOne = opt === q.correct_answer;
-
-                            // Classi dinamiche per i colori
-                            let btnClass = "border-white/5 bg-slate-800/40 text-slate-300 hover:bg-slate-800"; // Default
-
+                            
+                            let btnClass = "border-white/5 bg-white/[0.01] text-slate-300"; 
+                            let glowColor = "rgba(139, 92, 246, 0.15)"; 
+                            
                             if (hasAnswered) {
-                              if (isTheCorrectOne) btnClass = "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"; // Verde
-                              else if (isSelected && !isCorrect) btnClass = "border-red-500/50 bg-red-500/10 text-red-300"; // Rossa
-                              else btnClass = "border-transparent opacity-50"; // Altre spente
+                              if (isTheCorrectOne) {
+                                btnClass = "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
+                                glowColor = "rgba(16, 185, 129, 0.2)"; 
+                              } else if (isSelected && !isCorrect) {
+                                btnClass = "border-red-500/40 bg-red-500/10 text-red-200";
+                                glowColor = "rgba(239, 68, 68, 0.15)"; 
+                              } else {
+                                btnClass = "border-transparent bg-transparent text-slate-500/40";
+                                glowColor = "transparent"; 
+                              }
                             }
 
                             return (
@@ -852,27 +1080,56 @@ export default function DashboardPage() {
                                 key={opt}
                                 onClick={() => handleAnswerClick(q, opt)}
                                 disabled={hasAnswered}
-                                className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex justify-between items-center ${btnClass}`}
+                                onMouseMove={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const x = e.clientX - rect.left;
+                                  const y = e.clientY - rect.top;
+                                  e.currentTarget.style.setProperty('--x', `${x}px`);
+                                  e.currentTarget.style.setProperty('--y', `${y}px`);
+                                }}
+                                className={`group relative w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-300 flex justify-between items-center overflow-hidden ${hasAnswered ? 'cursor-default' : 'hover:border-white/10 hover:text-white active:scale-[0.99]'} ${btnClass}`}
                               >
-                                <span>{opt}</span>
-                                {hasAnswered && isTheCorrectOne && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                                {hasAnswered && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-400" />}
+                                {!hasAnswered && (
+                                  <div 
+                                    className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-0"
+                                    style={{ background: `radial-gradient(400px circle at var(--x, 50%) var(--y, 50%), ${glowColor}, transparent 40%)` }}
+                                  />
+                                )}
+                                {hasAnswered && isTheCorrectOne && (
+                                  <div 
+                                    className="pointer-events-none absolute inset-0 opacity-100 z-0"
+                                    style={{ background: `radial-gradient(800px circle at 0% 50%, ${glowColor}, transparent 100%)` }}
+                                  />
+                                )}
+
+                                <span className="relative z-10 pr-4 leading-relaxed">{opt}</span>
+                                
+                                {hasAnswered && isTheCorrectOne && (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 relative z-10 flex-shrink-0 animate-in zoom-in" />
+                                )}
+                                {hasAnswered && isSelected && !isCorrect && (
+                                  <XCircle className="w-4 h-4 text-red-400 relative z-10 flex-shrink-0 animate-in zoom-in" />
+                                )}
                               </button>
                             );
                           })}
                         </div>
 
-                        {/* Tip / Spiegazione */}
-                        <div className="pl-0 md:pl-10 mt-3">
+                        {/* --- SEZIONE SPIEGAZIONE --- */}
+                        {/* Anche qui: ml-0 su mobile, ml-11 su PC */}
+                        <div className="ml-0 md:ml-11 mt-4">
                           <button
                             onClick={() => toggleTip(q.id)}
-                            className="text-xs text-slate-500 hover:text-violet-400 flex items-center gap-1 transition-colors"
+                            className="text-xs font-medium text-slate-400 hover:text-violet-400 flex items-center gap-1.5 transition-colors"
                           >
-                            <Lightbulb className="w-3 h-3" /> {expandedTips[q.id] ? "Nascondi spiegazione" : "Mostra spiegazione"}
+                            <Lightbulb className={`w-3.5 h-3.5 ${expandedTips[q.id] ? 'text-violet-400' : ''}`} /> 
+                            {expandedTips[q.id] ? "Chiudi spiegazione" : "Mostra spiegazione"}
                           </button>
+                          
+                          {/* Box Insight Tutto Tondo e Bordo Viola */}
                           {expandedTips[q.id] && (
-                            <div className="mt-2 text-sm text-slate-300 bg-slate-800/50 p-3 rounded-lg border border-white/5 animate-in fade-in">
-                              <span className="text-yellow-500 font-bold">Spiegazione:</span> {q.explanation || "Nessuna spiegazione disponibile."}
+                            <div className="mt-3 text-xs md:text-sm leading-relaxed text-slate-300/90 bg-violet-500/5 border border-violet-500/40 px-4 py-3 rounded-xl shadow-sm shadow-violet-900/20 animate-in fade-in slide-in-from-top-1">
+                              {q.explanation || "Nessuna spiegazione dettagliata disponibile."}
                             </div>
                           )}
                         </div>
@@ -881,15 +1138,21 @@ export default function DashboardPage() {
                     );
                   })}
 
-                  {/* Footer lista domande */}
-                  <div className="py-8 text-center">
+                  {/* Footer Pulsante Minimal */}
+                  <div className="pt-4 flex justify-center">
                     <button
                       onClick={handleGenerateMore}
                       disabled={generating}
-                      className="text-slate-500 hover:text-white transition-colors text-sm flex items-center gap-2 mx-auto"
+                      className="group flex items-center gap-2 px-5 py-2.5 bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-violet-500/30 rounded-full transition-all active:scale-95 disabled:opacity-50"
                     >
-                      {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      Genera altre domande
+                      {generating ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+                      ) : (
+                        <Plus className="w-4 h-4 text-violet-400 group-hover:text-violet-300" />
+                      )}
+                      <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
+                        {generating ? "Generazione..." : "Genera altre 10"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -898,6 +1161,15 @@ export default function DashboardPage() {
           </section>
         </div>
       </main>
+      {/* BOTTONE SCROLL TO TOP (Floating) */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="lg:hidden fixed bottom-6 right-6 z-30 p-3 bg-gradient-to-br from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-full shadow-2xl shadow-violet-900/60 transition-all active:scale-90 animate-in fade-in slide-in-from-bottom-4"
+        >
+          <ChevronUp className="w-5 h-5 text-white" />
+        </button>
+      )}
     </div>
   );
 }
