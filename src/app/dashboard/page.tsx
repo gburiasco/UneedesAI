@@ -246,13 +246,20 @@ export default function DashboardPage() {
           const pdfUrl = URL.createObjectURL(pdfBlob);
           window.open(pdfUrl, '_blank');
         }
-      } catch (error) {
+      } catch (error: any) {
         // Se l'utente chiude la tendina o c'è un errore, tentiamo il download classico
-        console.log("Condivisione annullata o non supportata", error);
-        doc.save(fileName);
+        if (error.name === 'AbortError' || error.message.includes('abort') || error.message.includes('cancel')) {
+          console.log("Condivisione annullata dall'utente.");
+          return; // Usciamo silenziosamente, la pagina rimane perfetta.
+        }
+        // Se è un VERO errore di sistema, NON usiamo doc.save() su mobile! 
+        // Proviamo ad aprirlo in un'altra scheda per non rompere la pagina corrente.
+        console.error("Errore imprevisto durante la condivisione:", error);
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
       }
     } else {
-      // Su PC usiamo il salvataggio classico che funziona sempre
+      // 💻 Su PC usiamo il salvataggio classico
       doc.save(fileName);
     }
   };
