@@ -3,12 +3,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jsPDF } from "jspdf";
-import { supabase } from "../../lib/supabase";
-import { Header } from "../../components/header";
-import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../actions";
-import { PaywallModal } from "../../components/paywall-modal";
+import { supabase } from "../../../lib/supabase";
+import { Header } from "../../../components/header";
+import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../../actions";
+import { PaywallModal } from "../../../components/paywall-modal";
 import { X, Eraser, Download, Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useTranslations } from "next-intl";
 
 type FileRow = {
   id: string;
@@ -41,7 +42,9 @@ export default function DashboardPage() {
   const [paywallReason, setPaywallReason] = useState<"daily" | null>(null);
   const [isGraphExpanded, setIsGraphExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const t = useTranslations('dashboard');
+  const quiz = useTranslations('quiz');
+  
   // Dati File
   const [files, setFiles] = useState<FileRow[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
@@ -114,11 +117,11 @@ export default function DashboardPage() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
-      doc.text("Esercitazione Personalizzata", margin + 35, 15);
+      doc.text(t('pdfSubtitle'), margin + 35, 15);
 
       // Footer con link cliccabile
       doc.setFontSize(9);
-      const footerText = `Generato con Uneedes AI - uneedes-ai.vercel.app   |   Pagina ${pageNum}`;
+      const footerText = t('pdfFooterPrefix') + ' - uneedes-ai.vercel.app   |   ' + t('pdfPage') + ' ' + pageNum;
       const textWidth = doc.getTextWidth(footerText);
       doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
 
@@ -132,7 +135,7 @@ export default function DashboardPage() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.setTextColor(30, 41, 59);
-    const title = doc.splitTextToSize(`Quiz: ${selectedFile?.filename || "Documento"}`, pageWidth - margin * 2);
+    const title = doc.splitTextToSize(t('pdfQuizTitlePrefix') + (selectedFile?.filename || t('pdfDefaultDocName')), pageWidth - margin * 2);
     doc.text(title, margin, y);
     y += (title.length * 8) + 10;
 
@@ -178,7 +181,7 @@ export default function DashboardPage() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(139, 92, 246);
-    doc.text("Soluzioni e Spiegazioni", margin, y);
+    doc.text(t('pdfSolutionsTitle'), margin, y);
     y += 15;
 
     questions.forEach((q, index) => {
@@ -194,7 +197,7 @@ export default function DashboardPage() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(15, 23, 42);
-      const questionText = doc.splitTextToSize(`Domanda ${index + 1}: ${q.question_text}`, pageWidth - margin * 2);
+      const questionText = doc.splitTextToSize(t('pdfQuestionPrefix') + (index + 1) + ': ' + q.question_text, pageWidth - margin * 2);
       doc.text(questionText, margin, y);
       y += (questionText.length * 5) + 2;
 
@@ -202,7 +205,7 @@ export default function DashboardPage() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(16, 185, 129); // Verde
-      const splitAnswer = doc.splitTextToSize(`Esatta: ${q.correct_answer}`, pageWidth - margin * 2 - 5);
+      const splitAnswer = doc.splitTextToSize(t('pdfCorrectPrefix') + q.correct_answer, pageWidth - margin * 2 - 5);
       doc.text(splitAnswer, margin + 5, y);
       y += (splitAnswer.length * 5) + 2;
 
@@ -211,7 +214,7 @@ export default function DashboardPage() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139); // Grigio
-        const splitExp = doc.splitTextToSize(`Spiegazione: ${q.explanation}`, pageWidth - margin * 2 - 5);
+        const splitExp = doc.splitTextToSize(t('pdfExplanationPrefix') + q.explanation, pageWidth - margin * 2 - 5);
         doc.text(splitExp, margin + 5, y);
         y += (splitExp.length * 5) + 8; // Spazio abbondante prima della prossima domanda
       } else {
@@ -221,9 +224,9 @@ export default function DashboardPage() {
 
     // Salva il file
     // --- SALVATAGGIO (Versione Premium Mobile-First) ---
-    const rawName = selectedFile?.filename || "Documento";
+    const rawName = selectedFile?.filename || t('pdfDefaultDocName');
     const cleanName = rawName.replace(/\.[^/.]+$/, "").replace(/[\\/:*?"<>|]/g, "").trim();
-    const fileName = `${cleanName} - Quiz by Uneedes.pdf`;
+    const fileName = `${cleanName} - ${t('pdfFileNameSuffix')}`;
 
     // 1. Trasformiamo il PDF in dati grezzi (Blob) invece di forzare il download
     const pdfBlob = doc.output('blob');
@@ -288,7 +291,7 @@ export default function DashboardPage() {
         .order("uploaded_at", { ascending: false });
 
       if (error) {
-        setFilesError("Impossibile caricare i file");
+        setFilesError(t('filesLoadError'));
       } else {
         setFiles((data || []) as FileRow[]);
         if (data && data.length > 0 && !selectedFileId) setSelectedFileId(data[0].id);
@@ -317,7 +320,7 @@ export default function DashboardPage() {
 
     if (error) {
       console.error("Errore domande:", error);
-      setQuestionsError("Errore caricamento quiz");
+      setQuestionsError(t('quizLoadError'));
       setQuestionsLoading(false);
       return;
     }
@@ -369,7 +372,7 @@ export default function DashboardPage() {
 
     questions.forEach(q => {
       const answer = userAnswers[q.id];
-      const topic = q.topic || "Generale";
+      const topic = q.topic || t('generalTopic'); 
 
       if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
 
@@ -398,14 +401,17 @@ export default function DashboardPage() {
     const bestTopic = [...chartData].sort((a, b) => b.score - a.score)[0];
     const worstTopic = [...chartData].sort((a, b) => a.score - b.score)[0];
 
-    let feedback = "Rispondi a qualche domanda per la tua analisi.";
+    let feedback = t('feedback.empty');
     if (answeredCount > 0) {
       if (score >= 80) {
-        feedback = `Ottimo lavoro! Sei un asso in ${bestTopic?.name || 'tutto'}, continua così! 🔥`;
+        feedback = t('feedback.excellent', { topic: bestTopic?.name || t('feedback.fallbackAll') });
       } else if (score >= 50) {
-        feedback = `Buon andamento! Vai forte in ${bestTopic?.name || 'alcuni argomenti'}, ma occhio a ${worstTopic?.name || 'certe domande'}. 📚`;
+        feedback = t('feedback.good', { 
+          bestTopic: bestTopic?.name || t('feedback.fallbackSome'), 
+          worstTopic: worstTopic?.name || t('feedback.fallbackCertain') 
+        });
       } else {
-        feedback = `C'è margine di miglioramento. Ti consiglio di ripassare bene ${worstTopic?.name || 'gli appunti'}. 💪`;
+        feedback = t('feedback.needsImprovement', { topic: worstTopic?.name || t('feedback.fallbackNotes') });
       }
     }
 
@@ -484,7 +490,7 @@ export default function DashboardPage() {
 
   // DELETE & RESET
   const handleDeleteFile = async (fileId: string) => {
-    if (!confirm("Sei sicuro di voler eliminare questo file? Perderai tutte le domande e le risposte.")) return;
+    if (!confirm(t('confirmDelete'))) return;
     if (!userId) return;
 
     const result = await deleteFileAction(fileId, userId);
@@ -497,13 +503,13 @@ export default function DashboardPage() {
         setQuestions([]);
       }
     } else {
-      alert("Errore durante l'eliminazione.");
+        alert(t('errorDelete'));
     }
   };
 
   const handleResetQuiz = async () => {
     setStreak(0);
-    if (!confirm("Vuoi cancellare tutte le tue risposte e ricominciare da zero?")) return;
+    if (!confirm(t('confirmReset'))) return;
     if (!selectedFileId || !userId) return;
 
     const result = await resetQuizAnswersAction(selectedFileId, userId);
@@ -511,7 +517,7 @@ export default function DashboardPage() {
       // Resetta stato locale immediato
       setUserAnswers({});
     } else {
-      alert("Errore durante il reset.");
+      alert(t('errorReset'));
     }
   };
 
@@ -547,8 +553,8 @@ export default function DashboardPage() {
           {/* Header Minimalista */}
           <div className="pt-8 pb-4 px-6 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Documenti</h2>
-              <p className="text-xs font-medium text-slate-400 mt-1">{files.length} file caricati</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">{t('drawerTitle')}</h2>
+              <p className="text-xs font-medium text-slate-400 mt-1">{files.length} {t('uploadedFilesCount')}</p>
             </div>
             <button
               onClick={() => setShowFileDrawer(false)}
@@ -563,16 +569,16 @@ export default function DashboardPage() {
             {filesLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4">
                 <Loader2 className="w-7 h-7 animate-spin text-violet-500" />
-                <span className="text-sm font-medium">Sincronizzazione in corso...</span>
+                <span className="text-sm font-medium">{t('syncing')}</span>
               </div>
             ) : files.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center px-6">
                 <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
                   <FileText className="w-8 h-8 text-slate-500" strokeWidth={1.5} />
                 </div>
-                <h3 className="text-base text-slate-200 font-semibold">Il tuo archivio è vuoto</h3>
+                <h3 className="text-base text-slate-200 font-semibold">{t('emptyArchiveTitle')}</h3>
                 <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Torna alla Home per caricare il tuo primo documento e iniziare a studiare.
+                  {t('emptyArchiveDescMobile')}
                 </p>
               </div>
             ) : (
@@ -622,7 +628,7 @@ export default function DashboardPage() {
                           handleDeleteFile(file.id);
                         }}
                         className="flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90"
-                        title="Elimina file"
+                        title={t('deleteFileTooltip')}
                       >
                         <Trash2 className="w-4 h-4" strokeWidth={2} />
                       </button>
@@ -637,27 +643,27 @@ export default function DashboardPage() {
           <div className="mt-auto p-5 border-t border-white/5 bg-gradient-to-t from-slate-950/80 to-transparent">
             <div className="flex items-center justify-center gap-2 text-slate-400/80 hover:text-slate-300 transition-colors cursor-default">
               <Sparkles className="w-4 h-4 text-violet-400" />
-              <span className="text-xs font-semibold uppercase tracking-widest">Uneedes AI</span>
+                <span className="text-xs font-semibold uppercase tracking-widest">{t('brandingTitle')}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <main className="z-10 flex-1 flex flex-col pt-8 px-4 pb-16 max-w-6xl mx-auto w-full gap-6">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8 pt-24 w-full">
 
         {/* Header Dashboard */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">La tua Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">{t('title')}</h1>
             <p className="text-slate-400 text-sm mt-1 hidden sm:block">
-              Seleziona un file a sinistra per esercitarti o generare nuove domande.
+              {t('subtitle')}
             </p>
           </div>
           <button
             onClick={() => router.push("/")}
             className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-300 hover:text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-white/5 transition-colors whitespace-nowrap"
           >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" /> Home
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" /> {t('homeButton')}
           </button>
         </div>
 
@@ -673,7 +679,7 @@ export default function DashboardPage() {
                 <div className="p-2.5 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl shadow-md shadow-violet-900/40">
                   <FileText className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-base font-bold text-white tracking-tight">I tuoi documenti</h2>
+                <h2 className="text-base font-bold text-white tracking-tight">{t('yourDocuments')}</h2>
               </div>
               <span className="text-xs font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-white/5">
                 {files.length}
@@ -685,7 +691,7 @@ export default function DashboardPage() {
               {filesLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4">
                   <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
-                  <span className="text-sm font-medium">Caricamento in corso...</span>
+                  <span className="text-sm font-medium">{t('loadingFiles')}</span>
                 </div>
               ) : filesError ? (
                 <div className="p-4 m-2 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400 flex items-center gap-3">
@@ -696,9 +702,9 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4 border border-white/5 shadow-inner">
                     <FileText className="w-8 h-8 text-slate-500" strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-base text-slate-200 font-semibold">Il tuo archivio è vuoto</h3>
+                  <h3 className="text-base text-slate-200 font-semibold">{t('emptyArchiveTitle')}</h3>
                   <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                    Vai in Home per caricarne uno e iniziare a studiare!
+                    {t('emptyArchiveDescDesktop')}
                   </p>
                 </div>
               ) : (
@@ -732,7 +738,7 @@ export default function DashboardPage() {
                               {file.filename}
                             </span>
                             <span className="text-[11px] font-medium text-slate-500 mt-0.5 truncate">
-                              Caricato il {new Date(file.uploaded_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {t('uploadedOnPrefix')} {new Date(file.uploaded_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                           </div>
                           
@@ -749,7 +755,7 @@ export default function DashboardPage() {
                           className={`flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90 ${
                             isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                           }`}
-                          title="Elimina file"
+                          title={t('deleteFileTooltip')}
                         >
                           <Trash2 className="w-4 h-4" strokeWidth={2} />
                         </button>
@@ -795,7 +801,7 @@ export default function DashboardPage() {
                           {selectedFile.filename}
                         </h2>
                         <p className="text-[10px] text-slate-400 font-medium">
-                          {questions.length} domande • {stats?.answered || 0} fatte
+                          {questions.length} {t('questionsCount')} • {stats?.answered || 0} {t('completedCount')}
                         </p>
                       </div>
                     </div>
@@ -813,7 +819,7 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap items-center gap-2 mt-1">
 
                     {/* PDF */}
-                    <button onClick={handleExportPDF} className="flex items-center justify-center w-7 h-7 bg-slate-800/40 hover:bg-slate-700/60 border border-white/5 rounded-lg transition-all active:scale-95 flex-shrink-0" title="Scarica PDF">
+                    <button onClick={handleExportPDF} className="flex items-center justify-center w-7 h-7 bg-slate-800/40 hover:bg-slate-700/60 border border-white/5 rounded-lg transition-all active:scale-95 flex-shrink-0" title={t('downloadPdfTooltip')}>
                       <Download className="w-3.5 h-3.5 md:w-4 md:h4 text-slate-400 hover:text-slate-300" />
                     </button>
 
@@ -826,7 +832,7 @@ export default function DashboardPage() {
                             className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 rounded-md transition-all active:scale-95"
                           >
                             <Eraser className="w-3.5 h-3.5 text-orange-400" />
-                            <span className="text-[10px] md:text-xs font-medium text-orange-300">Errori</span>
+                            <span className="text-[10px] md:text-xs font-medium text-orange-300">{t('errors')}</span>
                           </button>
                           <div className="w-px h-4 bg-white/10" />
                         </>
@@ -836,7 +842,7 @@ export default function DashboardPage() {
                         className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 hover:bg-white/5 rounded-md transition-all active:scale-95"
                       >
                         <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-[10px] md:text-xs font-medium text-slate-300">Reset</span>
+                        <span className="text-[10px] md:text-xs font-medium text-slate-300">{t('reset')}</span>
                       </button>
                     </div>
 
@@ -845,7 +851,7 @@ export default function DashboardPage() {
                       {/* Shimmer effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                       {generating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Plus className="w-4 h-4 text-white" />}
-                      <span className="text-xs font-semibold text-white">10 Domande</span>
+                      <span className="text-xs font-semibold text-white">{t('generate10Questions')}</span>
                     </button>
                   </div>
                 </div>
@@ -861,7 +867,7 @@ export default function DashboardPage() {
                         {selectedFile.filename}
                       </h2>
                       <p className="text-[10px] text-slate-500 font-medium">
-                        {questions.length} domande • {stats?.answered || 0} completate
+                        {questions.length} {t('questionsCount')} • {stats?.answered || 0} {t('completedCount')}
                       </p>
                     </div>
                     {streak > 0 && (
@@ -882,21 +888,21 @@ export default function DashboardPage() {
                         <>
                           <button onClick={handleRetryErrors} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 rounded-md transition-all">
                             <Eraser className="w-3.5 h-3.5 text-orange-400" />
-                            <span className="text-xs font-medium text-orange-300">Errori</span>
+                            <span className="text-xs font-medium text-orange-300">{t('errors')}</span>
                           </button>
                           <div className="w-px h-4 bg-white/10" />
                         </>
                       )}
                       <button onClick={handleResetQuiz} className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/5 rounded-md transition-all">
                         <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-xs font-medium text-slate-300">Reset</span>
+                        <span className="text-xs font-medium text-slate-300">{t('reset')}</span>
                       </button>
                     </div>
                     <button onClick={handleGenerateMore} disabled={generating} className="relative group flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-lg transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-violet-900/40 hover:shadow-xl hover:shadow-violet-900/60 flex-shrink-0 overflow-hidden">
                       {/* Shimmer effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                       {generating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Plus className="w-4 h-4 text-white" />}
-                      <span className="text-xs font-semibold text-white">10 Domande</span>
+                      <span className="text-xs font-semibold text-white">{t('generate10Questions')}</span>
                     </button>
                   </div>
 
@@ -917,7 +923,7 @@ export default function DashboardPage() {
                       <Trophy className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Punteggio</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{t('score')}</p>
                       <p className="text-lg font-bold text-white">{stats.score}%</p>
                     </div>
                   </div>
@@ -927,7 +933,7 @@ export default function DashboardPage() {
                       <Target className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Completato</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{t('completed')}</p>
                       <p className="text-lg font-bold text-white">{stats.answered}/{stats.total}</p>
                     </div>
                   </div>
@@ -938,9 +944,9 @@ export default function DashboardPage() {
                       <PieChart className="w-5 h-5" />
                     </div>
                     <div className="overflow-hidden">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Da ripassare</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{t('review')}</p>
                       <p className="text-xs font-medium text-slate-200 line-clamp-2 leading-tight">
-                        {stats.worstTopic ? stats.worstTopic.name : "Tutto ok! 🎉"}
+                        {stats.worstTopic ? stats.worstTopic.name : t('allOk')}
                       </p>
                     </div>
                   </div>
@@ -969,7 +975,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-violet-400" />
                     <h3 className="text-sm font-semibold text-slate-300">
-                      Andamento per Argomento
+                      {t('chartTitle')}
                     </h3>
                   </div>
                   {isGraphExpanded ? (
@@ -1014,16 +1020,16 @@ export default function DashboardPage() {
                   <div className="w-20 h-20 rounded-[1.5rem] bg-white/[0.02] border border-white/5 shadow-xl flex items-center justify-center mb-5">
                     <FileText className="w-8 h-8 text-slate-600" strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-lg font-bold text-white tracking-tight">Nessun documento selezionato</h3>
+                  <h3 className="text-lg font-bold text-white tracking-tight">{t('noDocumentSelected')}</h3>
                   <p className="text-slate-400 mt-2 max-w-sm text-sm">
-                    Scegli un file dalla libreria a sinistra per visualizzare il quiz.
+                    {t('chooseFileToView')}
                   </p>
                 </div>
               ) : questionsLoading ? (
                 /* Caricamento */
                 <div className="h-full flex flex-col items-center justify-center py-20 text-slate-400 gap-4 animate-in fade-in">
                   <Loader2 className="w-7 h-7 animate-spin text-violet-500" />
-                  <span className="text-sm font-medium tracking-wide">Generazione in corso...</span>
+                  <span className="text-sm font-medium tracking-wide">{t('generating')}</span>
                 </div>
               ) : questionsError ? (
                 /* Errore */
@@ -1037,13 +1043,13 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4 border border-white/5">
                     <Sparkles className="w-6 h-6 text-violet-500" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-200">Pronto per iniziare?</h3>
-                  <p className="text-slate-400 text-sm mt-1 mb-5">Non ci sono ancora domande per questo file.</p>
+                  <h3 className="text-base font-bold text-slate-200">{t('readyToStart')}</h3>
+                  <p className="text-slate-400 text-sm mt-1 mb-5">{t('noQuestionsYet')}</p>
                   <button 
                     onClick={handleGenerateMore} 
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-full text-white font-semibold text-sm shadow-md transition-all active:scale-95"
                   >
-                    <Plus className="w-4 h-4" /> Genera le prime 10
+                      <Plus className="w-4 h-4" /> {t('generateFirst10')}
                   </button>
                 </div>
               ) : (
@@ -1163,13 +1169,13 @@ export default function DashboardPage() {
                             className="text-xs font-medium text-slate-400 hover:text-violet-400 flex items-center gap-1.5 transition-colors"
                           >
                             <Lightbulb className={`w-3.5 h-3.5 ${expandedTips[q.id] ? 'text-violet-400' : ''}`} /> 
-                            {expandedTips[q.id] ? "Chiudi spiegazione" : "Mostra spiegazione"}
+                            {expandedTips[q.id] ? quiz('showTip') : quiz('hideTip')}
                           </button>
                           
                           {/* Box Insight Tutto Tondo e Bordo Viola */}
                           {expandedTips[q.id] && (
                             <div className="mt-3 text-xs md:text-sm leading-relaxed text-slate-300/90 bg-violet-500/5 border border-violet-500/40 px-4 py-3 rounded-xl shadow-sm shadow-violet-900/20 animate-in fade-in slide-in-from-top-1">
-                              {q.explanation || "Nessuna spiegazione dettagliata disponibile."}
+                              {q.explanation || t('noExplanation')}
                             </div>
                           )}
                         </div>
@@ -1191,7 +1197,7 @@ export default function DashboardPage() {
                         <Plus className="w-4 h-4 text-violet-400 group-hover:text-violet-300" />
                       )}
                       <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
-                        {generating ? "Generazione..." : "Genera altre 10"}
+                        {generating ? t('generating') : t('generateMore10')}
                       </span>
                     </button>
                   </div>

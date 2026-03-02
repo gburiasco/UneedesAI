@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import { Loader2, Mail, Lock, LogIn, Chrome } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const router = useRouter();
 
+  const t = useTranslations('auth');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -53,7 +55,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Errore durante l'autenticazione.");
+      setError(err.message || t('defaultError'));
     } finally {
       setLoading(false);
     }
@@ -66,9 +68,9 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Accedi a Uneedes</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
           <p className="text-slate-400 text-sm">
-            Salva i tuoi quiz, traccia i progressi e sblocca i limiti del PRD.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -84,13 +86,13 @@ export default function LoginPage() {
             ) : (
               <Chrome className="w-5 h-5" />
             )}
-            <span>Continua con Google</span>
+            <span>{t('googleBtn')}</span>
           </button>
 
           <div className="flex items-center my-6">
             <div className="flex-1 h-px bg-slate-700" />
             <span className="px-3 text-xs text-slate-500 uppercase tracking-wide">
-              oppure
+              {t('or')}
             </span>
             <div className="flex-1 h-px bg-slate-700" />
           </div>
@@ -98,7 +100,7 @@ export default function LoginPage() {
           {/* Email / Password */}
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div>
-              <label className="text-xs text-slate-400">Email</label>
+              <label className="text-xs text-slate-400">{t('emailLabel')}</label>
               <div className="mt-1 flex items-center gap-2 bg-slate-900 rounded-xl border border-slate-700/60 px-3">
                 <Mail className="w-4 h-4 text-slate-500" />
                 <input
@@ -107,13 +109,13 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-slate-600"
-                  placeholder="nome@universita.it"
+                  placeholder={t('emailPlaceholder')}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-slate-400">Password</label>
+              <label className="text-xs text-slate-400">{t('passwordLabel')}</label>
               <div className="mt-1 flex items-center gap-2 bg-slate-900 rounded-xl border border-slate-700/60 px-3">
                 <Lock className="w-4 h-4 text-slate-500" />
                 <input
@@ -122,7 +124,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-slate-600"
-                  placeholder="Minimo 6 caratteri"
+                  placeholder={t('passwordPlaceholder')}
                 />
               </div>
             </div>
@@ -144,7 +146,7 @@ export default function LoginPage() {
                 <LogIn className="w-4 h-4" />
               )}
               <span>
-                {mode === "login" ? "Accedi con Email" : "Registrati con Email"}
+                {mode === "login" ? t('loginBtn') : t('signupBtn')}
               </span>
             </button>
           </form>
@@ -152,24 +154,24 @@ export default function LoginPage() {
           <div className="mt-4 text-xs text-slate-400 text-center">
             {mode === "login" ? (
               <>
-                Non hai un account?{" "}
+                {t('noAccount')} {" "}
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
                   className="text-violet-400 hover:text-violet-300 font-medium"
                 >
-                  Registrati
+                  {t('switchToSignup')}
                 </button>
               </>
             ) : (
               <>
-                Hai già un account?{" "}
+                  {t('hasAccount')} {" "}
                 <button
                   type="button"
                   onClick={() => setMode("login")}
                   className="text-violet-400 hover:text-violet-300 font-medium"
                 >
-                  Accedi
+                  {t('switchToLogin')}
                 </button>
               </>
             )}

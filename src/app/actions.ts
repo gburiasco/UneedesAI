@@ -52,161 +52,178 @@ export async function generateQuizAction(formData: FormData) {
       return { error: "Il PDF sembra vuoto o è una scansione. Serve testo selezionabile." };
     }
 
-    // Troncamento intelligente
-    const truncatedText = fullText.slice(0, 30000);
+    // 2) TRUNCATE DINAMICO INTELLIGENTE (risparmio token)
+    const MAX_CHARS = 30000; // ~10 pagine accademiche
+    
+    let truncatedText: string;
+    if (fullText.length <= MAX_CHARS) {
+      // PDF corto: usa tutto (risparmio automatico!)
+      truncatedText = fullText;
+    } else {
+      // PDF lungo: primi 80% + ultimi 20% (copre intro + conclusioni)
+      const mainChunk = fullText.slice(0, MAX_CHARS * 0.8);
+      const endChunk = fullText.slice(-MAX_CHARS * 0.2);
+      truncatedText = mainChunk + "\n\n[...]\n\n" + endChunk;
+    }
 
-    // 2) Chiama Gemini
+    console.log(`📄 Testo: ${fullText.length} char → Usati: ${truncatedText.length} char (${Math.round(truncatedText.length/fullText.length*100)}%)`);
+
+
+    // 3) Chiama Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite", });
 
     const prompt = `
-Sei un professore universitario che deve creare un esame.
+Generate 10 multiple-choice questions from the text below.
 
-REGOLA ASSOLUTA: Devi generare ESATTAMENTE 10 domande. Non 9, non 11, non 26. DIECI.
+CRITICAL RULES:
+1. ALL 4 options MUST be 15-25 words each (equal length to prevent answer leaking)
+2. Randomize correct answer position (A/B/C/D - not always first)
+3. Wrong answers must be plausible but clearly distinguishable
+4. Return ONLY valid JSON array (no markdown, no explanations)
 
-ISTRUZIONI:
-1. Leggi attentamente il testo sotto
-2. Identifica i 10 concetti più importanti
-3. Crea 1 domanda per ogni concetto (= 10 domande totali)
-4. Ogni domanda ha 4 opzioni (A, B, C, D)
-5. Restituisci SOLO il JSON, senza testo aggiuntivo
+JSON SCHEMA:
+[{
+  "question": "Clear, specific question text",
+  "options": ["15-25 word option", "15-25 word option", "15-25 word option", "15-25 word option"],
+  "answer": "Exact text match of the correct option",
+  "tip": "Brief explanation (max 35 words)",
+  "topic": "Main subject or concept"
+}]
 
-FORMATO JSON (esatto):
-[
-  {
-    "question": "Testo domanda...",
-    "options": ["Opzione A", "Opzione B", "Opzione C", "Opzione D"],
-    "answer": "Testo ESATTO dell'opzione corretta",
-    "tip": "Breve spiegazione (max 50 parole)",
-    "topic": "Nome argomento"
-  }
-]
+EXAMPLE (follow this format):
+{
+  "question": "Secondo il Modello dei Due Fattori di Herzberg, quali sono i fattori igienici?",
+  "options": [
+    "Fattori legati alla crescita personale, al riconoscimento professionale e alle opportunità di sviluppo nella carriera lavorativa",
+    "Fattori legati alle condizioni di lavoro, alla retribuzione economica e alla sicurezza dell'impiego nel contesto organizzativo",
+    "Fattori legati esclusivamente ai rapporti interpersonali con colleghi, superiori diretti e al clima organizzativo generale dell'azienda",
+    "Fattori legati unicamente alle opportunità concrete di avanzamento, promozione verticale e progressione nella struttura gerarchica aziendale"
+  ],
+  "answer": "Fattori legati alle condizioni di lavoro, alla retribuzione economica e alla sicurezza dell'impiego nel contesto organizzativo",
+  "tip": "Herzberg distingue fattori igienici (prevengono insoddisfazione) da motivanti (creano soddisfazione attiva).",
+  "topic": "Teorie della Motivazione"
+}
 
-IMPORTANTE: Conta le domande prima di rispondere. Se ne hai più di 10, elimina le ultime.
-
-TESTO DA ANALIZZARE:
+TEXT TO ANALYZE:
 ${truncatedText}
 `;
 
-    const result = await model.generateContent(prompt);
+    // 5) GENERAZIONE CON PARAMETRI OTTIMALI
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.4,      // Bassa = qualità stabile, poca variazione casuale
+        topP: 0.8,             // Taglia 20% opzioni meno probabili (no risposte strane)
+        maxOutputTokens: 4096, // Sufficiente per 10 domande ben formattate
+        responseMimeType: "application/json" // Forza JSON valido (Gemini 2.5+)
+      }
+    });
+
     const response = await result.response;
 
-    let jsonString = response.text()
+    // 6) PARSING JSON (già pulito grazie a responseMimeType)
+    let jsonString = response.text().trim();
+    
+    // Fallback cleaning se necessario
+    jsonString = jsonString
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
-    // Pulizia JSON robusta
     const startIdx = jsonString.indexOf("[");
     const endIdx = jsonString.lastIndexOf("]");
     if (startIdx !== -1 && endIdx !== -1) {
       jsonString = jsonString.substring(startIdx, endIdx + 1);
     }
-    // Fix per backslash che rompono il JSON
-    jsonString = jsonString.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
 
     let quiz: any;
     try {
       quiz = JSON.parse(jsonString);
     } catch (e) {
-      console.error("Errore parsing JSON:", e);
+      console.error("❌ Errore parsing JSON:", e);
+      console.error("Risposta raw:", jsonString.slice(0, 500));
       return { error: "Errore nella generazione delle domande. Riprova." };
     }
 
-    // Se non c'è userId → utente anonimo: NON salvare nulla su Supabase
+    // Validazione: devono essere 10 domande
+    if (!Array.isArray(quiz) || quiz.length !== 10) {
+      console.warn(`⚠️ Gemini ha generato ${quiz.length} domande invece di 10`);
+      // Tronca o riempi per avere esattamente 10
+      if (quiz.length > 10) quiz = quiz.slice(0, 10);
+      if (quiz.length < 10) {
+        return { error: `L'AI ha generato solo ${quiz.length} domande. Riprova.` };
+      }
+    }
+
+    // --- UTENTE ANONIMO: NO SALVATAGGIO ---
     if (!userId) {
       return { success: true, quiz, saved: false };
     }
 
-    // 3) Salvataggio nel DB usando supabaseAdmin
-    // 🔍 DEBUG: Prima dell'INSERT
-console.log("=== DEBUG SALVATAGGIO FILE ===");
-console.log("User ID:", userId);
-console.log("Filename:", file.name);
-console.log("Service Key OK:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+   // 7) SALVATAGGIO DB (solo utenti loggati)
+   const { data: fileRow, error: fileError } = await supabaseAdmin
+   .from("files")
+   .insert({
+     user_id: userId,
+     filename: file.name,
+     file_size: file.size,
+     extracted_text: truncatedText,
+     processed: true,
+   })
+   .select("id")
+   .single();
 
-// INSERT File
-const { data: fileRow, error: fileError } = await supabaseAdmin
-  .from("files")
-  .insert({
-    user_id: userId,
-    filename: file.name,
-    file_size: file.size,
-    extracted_text: truncatedText,
-    processed: true,
-  })
-  .select("id")
-  .single();
+ if (fileError) {
+   console.error("❌ Errore salvataggio file:", fileError);
+   return { success: true, quiz, saved: false };
+ }
 
-// 🔍 DEBUG: Risultato
-console.log("✅ File salvato:", fileRow);
-console.log("❌ Errore file:", fileError);
+ // 8) SALVATAGGIO DOMANDE (senza question_type)
+ const quizRows = (quiz as any[]).map((q) => ({
+   file_id: fileRow.id,
+   user_id: userId,
+   question_text: q.question,
+   options: q.options,
+   correct_answer: q.answer,
+   explanation: q.tip,
+   topic: q.topic,
+ }));
 
-if (fileError) {
-  console.error("Errore salvataggio file:", fileError);
-  return { success: true, quiz, saved: false };
+ const { data: quizData, error: quizError } = await supabaseAdmin
+   .from("quiz_questions")
+   .insert(quizRows)
+   .select();
+
+ if (quizError) {
+   console.error("❌ Errore salvataggio domande:", quizError);
+   return { success: true, quiz, saved: false };
+ }
+
+ // 9) AGGIORNAMENTO CONTATORI
+ try {
+   await incrementLimits(userId, 1, 10);
+ } catch (limitError) {
+   console.error("⚠️ Errore aggiornamento limiti:", limitError);
+ }
+
+ // 10) RITORNA DOMANDE CON ID REALI (per salvataggio risposte)
+ const quizWithIds = quizData.map(q => ({
+   id: q.id,
+   question: q.question_text,
+   options: q.options,
+   answer: q.correct_answer,
+   tip: q.explanation,
+   topic: q.topic
+ }));
+
+ return { success: true, quiz: quizWithIds, saved: true, fileId: fileRow.id };
+
+} catch (error: any) {
+ console.error("❌ Errore generale:", error);
+ return { error: "Errore durante l'elaborazione del file." };
 }
+} 
 
-    if (fileError) {
-      console.error("Errore salvataggio file:", fileError);
-      return { success: true, quiz, saved: false };
-    }
-
-    const quizRows = (quiz as any[]).map((q) => ({
-      file_id: fileRow.id,
-      user_id: userId,
-      question_text: q.question,
-      options: q.options,
-      correct_answer: q.answer,
-      explanation: q.tip,
-      topic: q.topic,
-    }));
-
-    console.log("🔍 Tentativo salvataggio domande:", quizRows.length, "domande");
-
-const { data: quizData, error: quizError } = await supabaseAdmin
-  .from("quiz_questions")
-  .insert(quizRows)
-  .select();
-
-console.log("✅ Domande salvate:", quizData?.length);
-console.log("❌ Errore domande:", quizError);
-
-if (quizError) {
-  console.error("ERRORE CRITICO quiz_questions:", quizError);
-  return { success: true, quiz, saved: false, error: "Errore salvataggio domande" };
-}
-
-    // --- 5. AGGIORNAMENTO CONTATORI ---
-    // Se siamo arrivati qui, il salvataggio è riuscito. Aggiorniamo i limiti.
-    try {
-      await incrementLimits(userId, 1, 10); // +1 File, +10 Domande
-    } catch (limitError) {
-      console.error("Errore aggiornamento limiti:", limitError);
-      // Non blocchiamo l'utente se fallisce l'aggiornamento del contatore, ma lo logghiamo
-    }
-
-    // Se loggato, ritorna le domande DAL DB (con ID), non dall'AI
-if (quizData && quizData.length > 0) {
-  // Trasforma in formato UI-friendly
-  const quizWithIds = quizData.map(q => ({
-    id: q.id, // ✅ ID REALE dal DB!
-    question: q.question_text,
-    options: q.options,
-    answer: q.correct_answer,
-    tip: q.explanation,
-    topic: q.topic
-  }));
-  return { success: true, quiz: quizWithIds, saved: true, fileId: fileRow.id };
-}
-
-// Fallback (non dovrebbe mai arrivare qui)
-return { success: true, quiz, saved: true, fileId: fileRow.id };
-
-  } catch (error: any) {
-    console.error("Errore generale:", error);
-    return { error: "Errore durante l'elaborazione del file." };
-  }
-}
 
 /**
  * GENERAZIONE INCREMENTALE (Punto 7)
@@ -215,70 +232,76 @@ return { success: true, quiz, saved: true, fileId: fileRow.id };
 export async function generateMoreQuestionsAction(fileId: string, userId: string) {
   if (!fileId || !userId) return { error: "Dati mancanti" };
 
-  // 1. CONTROLLO LIMITI (Solo Daily, perché il file è già caricato)
+  // Controllo limiti daily
   const allowedDaily = await checkDailyLimit(userId);
   if (!allowedDaily) {
     return { limitReached: true, reason: "daily" };
   }
 
   try {
-    // 2. Recuperiamo il testo del file e le domande GIÀ esistenti
+    // 1. Recupera testo + domande esistenti
     const { data: fileRow, error: fetchError } = await supabaseAdmin
       .from("files")
       .select("extracted_text, filename")
       .eq("id", fileId)
-      .eq("user_id", userId) // Sicurezza: deve essere suo
+      .eq("user_id", userId)
       .single();
 
     if (fetchError || !fileRow || !fileRow.extracted_text) {
       return { error: "File non trovato o testo mancante." };
     }
 
-    // Prendiamo le domande vecchie per evitare duplicati
+    // 2. Prendi domande esistenti per anti-duplicazione
     const { data: oldQuestions } = await supabaseAdmin
       .from("quiz_questions")
-      .select("question_text")
+      .select("question_text, topic")
       .eq("file_id", fileId);
 
-    const existingQuestionsText = oldQuestions?.map(q => q.question_text).join("\n- ") || "";
+    const existingQuestions = oldQuestions?.map(q => q.question_text).join("\n") || "None yet";
 
-    // 3. Prompt Avanzato per Gemini
+    // 3. PROMPT OTTIMIZZATO (stesso stile della funzione principale)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-    const prompt = `
-Sei un docente universitario.
-Il tuo compito è creare 10 NUOVE domande a risposta multipla basate sul testo fornito.
+    const prompt = `Generate 10 NEW multiple-choice questions from the text below.
 
-IMPORTANTE:
-Ecco un elenco di domande che hai GIÀ generato per questo testo. NON RIPETERLE. Crea domande su aspetti diversi o con formulazioni diverse.
-DOMANDE ESISTENTI DA EVITARE:
-- ${existingQuestionsText.slice(0, 2000)} (lista troncata per brevità)
+CRITICAL RULES:
+1. ALL 4 options MUST be 15-25 words each (equal length)
+2. Randomize correct answer position (A/B/C/D)
+3. Questions must be DIFFERENT from existing ones (see below)
+4. Cover NEW concepts not already tested
+5. Return ONLY valid JSON array
 
-ISTRUZIONI:
-1. Analizza il testo originale.
-2. Crea 10 NUOVE domande a risposta multipla (4 opzioni di uguale lunghezza).
-3. Restituisci SOLO un JSON valido.
+EXISTING QUESTIONS TO AVOID:
+${existingQuestions.slice(0, 1500)}
 
-FORMATO JSON:
-[
-  {
-    "question": "Nuova Domanda...",
-    "options": ["A", "B", "C", "D"],
-    "answer": "Risposta corretta",
-    "tip": "Spiegazione",
-    "topic": "Argomento"
-  }
-]
+JSON SCHEMA:
+[{
+  "question": "New question about untested concept",
+  "options": ["15-25 word option", "15-25 word option", "15-25 word option", "15-25 word option"],
+  "answer": "Exact match of correct option",
+  "tip": "Brief explanation (max 35 words)",
+  "topic": "Subject or concept"
+}]
 
-TESTO ORIGINALE:
-${fileRow.extracted_text.slice(0, 30000)}
-`;
+TEXT:
+${fileRow.extracted_text}`;
 
-    const result = await model.generateContent(prompt);
+    // 4. Generazione con parametri ottimali
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.4,
+        topP: 0.8,
+        maxOutputTokens: 4096,
+        responseMimeType: "application/json"
+      }
+    });
+
     const response = await result.response;
+    let jsonString = response.text().trim();
 
-    // Pulizia JSON
-    let jsonString = response.text()
+    // Pulizia fallback
+    jsonString = jsonString
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
@@ -288,17 +311,25 @@ ${fileRow.extracted_text.slice(0, 30000)}
     if (startIdx !== -1 && endIdx !== -1) {
       jsonString = jsonString.substring(startIdx, endIdx + 1);
     }
-    jsonString = jsonString.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
 
     let newQuiz: any[];
     try {
       newQuiz = JSON.parse(jsonString);
     } catch (e) {
-      console.error("Errore JSON Incremental:", e);
+      console.error("❌ Errore parsing JSON:", e);
       return { error: "Errore dell'AI. Riprova." };
     }
 
-    // 4. Salvataggio Nuove Domande
+    // Validazione: devono essere 10 domande
+    if (!Array.isArray(newQuiz) || newQuiz.length !== 10) {
+      console.warn(`⚠️ Gemini ha generato ${newQuiz.length} domande invece di 10`);
+      if (newQuiz.length > 10) newQuiz = newQuiz.slice(0, 10);
+      if (newQuiz.length < 10) {
+        return { error: `L'AI ha generato solo ${newQuiz.length} domande. Riprova.` };
+      }
+    }
+
+    // 5. Salvataggio (senza question_type)
     const quizRows = newQuiz.map((q) => ({
       file_id: fileId,
       user_id: userId,
@@ -314,17 +345,17 @@ ${fileRow.extracted_text.slice(0, 30000)}
       .insert(quizRows);
 
     if (insertError) {
-      console.error("Errore salvataggio nuove domande:", insertError);
+      console.error("❌ Errore salvataggio:", insertError);
       return { error: "Errore salvataggio DB" };
     }
 
-    // 5. Incrementiamo solo il contatore DOMANDE (File non cambia)
+    // 6. Incrementa contatore
     await incrementLimits(userId, 0, 10);
 
     return { success: true, count: newQuiz.length };
 
   } catch (error: any) {
-    console.error("Errore Gen More:", error);
+    console.error("❌ Errore Gen More:", error);
     return { error: "Errore imprevisto." };
   }
 }
