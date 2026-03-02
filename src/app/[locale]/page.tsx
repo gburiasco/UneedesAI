@@ -15,7 +15,7 @@ const DAILY_LIMIT = 50;
 export default function Home() {
   const router = useRouter();
   const t = useTranslations('home');
-  const q = useTranslations('quiz');
+  const tQuiz = useTranslations('quiz');
   // --- STATI ---
   const [loading, setLoading] = useState(false);
   const [quizData, setQuizData] = useState<any[] | null>(null);
@@ -36,7 +36,7 @@ export default function Home() {
 
   // --- STATI PER LE MICRO-ANIMAZIONI ---
   const [wordIndex, setWordIndex] = useState(0);
-  const heroWords = ["Quiz perfetti.", "Voti eccellenti.", "Studio veloce.", "Risultati reali."];
+  const heroWords = t.raw('heroWords') as string[];
   const [animatedScore, setAnimatedScore] = useState(0);
 
   useEffect(() => {
@@ -270,17 +270,34 @@ export default function Home() {
             </div>
 
             {/* Impostiamo un'altezza minima fissa per evitare che la pagina "salti" quando le parole cambiano */}
+            {/* Impostiamo un'altezza minima fissa per evitare che la pagina "salti" quando le parole cambiano */}
             <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-6 leading-[1.1] min-h-[120px] md:min-h-[150px]">
               <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-slate-500">
                 {t('heroTitlePrefix')}
               </span>
               <br />
-              <span
-                key={wordIndex}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-500 animate-in slide-in-from-bottom-4 fade-in duration-500"
-              >
-                {heroWords[wordIndex]}
-              </span>
+              <div className="relative h-[1.3em] overflow-hidden">
+                {heroWords.map((word, i) => (
+                  <span
+                    key={i}
+                    className={`absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-500 transition-all duration-700 ease-out ${i === wordIndex
+                      ? 'translate-y-0 opacity-100'
+                      : i === (wordIndex - 1 + heroWords.length) % heroWords.length
+                        ? '-translate-y-full opacity-0'
+                        : 'translate-y-full opacity-0'
+                      }`}
+                    style={{
+                      transform: i === wordIndex
+                        ? 'translateY(0) scale(1)'
+                        : i === (wordIndex - 1 + heroWords.length) % heroWords.length
+                          ? 'translateY(-120%) scale(0.9)'
+                          : 'translateY(120%) scale(0.9)'
+                    }}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed">
               {t('subtitle')} <br className="hidden md:block" />
@@ -353,8 +370,40 @@ export default function Home() {
                     </div>
                   ) : (
                     <>
-                      <div className="w-24 h-24 bg-gradient-to-br from-violet-600/20 to-purple-600/10 rounded-[2rem] flex items-center justify-center mb-6 border border-violet-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ease-out shadow-inner">
-                        <UploadCloud className="w-10 h-10 text-violet-400 group-hover:text-violet-300" strokeWidth={1.5} />
+                      {/* Icona Cloud con Super Animazione Premium */}
+                      <div className="relative inline-block mb-6 group">
+                        {/* Glow effect pulsante */}
+                        <div className="absolute -inset-8 bg-violet-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-pulse" />
+
+                        {/* Outer ring rotating */}
+                        <div className="absolute inset-0 rounded-full border-2 border-violet-400/20 scale-[1.6] opacity-0 group-hover:opacity-100 group-hover:scale-[2] group-hover:rotate-180 transition-all duration-1000 ease-out" />
+
+                        {/* Middle ring counter-rotating */}
+                        <div className="absolute inset-0 rounded-full border border-purple-400/30 scale-[1.3] opacity-0 group-hover:opacity-100 group-hover:scale-[1.6] group-hover:-rotate-90 transition-all duration-700 delay-75" />
+
+                        {/* Main container */}
+                        <div className="relative w-24 h-24 bg-gradient-to-br from-violet-600/20 to-purple-600/10 rounded-[2rem] flex items-center justify-center border border-violet-500/30 shadow-lg shadow-violet-900/30 group-hover:shadow-2xl group-hover:shadow-violet-500/40 transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-3 group-hover:rotate-3">
+
+                          {/* Animated cloud icon */}
+                          <UploadCloud
+                            className="w-10 h-10 text-violet-400 group-hover:text-violet-300 transition-all duration-500 group-hover:scale-125 group-hover:rotate-6"
+                            strokeWidth={1.5}
+                          />
+
+                          {/* Floating particles */}
+                          {/* Floating particles - Solo Tailwind */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                            <div className="absolute top-[20%] left-[30%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0s' }} />
+                            <div className="absolute top-[40%] left-[70%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0.15s' }} />
+                            <div className="absolute top-[60%] left-[50%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0.3s' }} />
+                            <div className="absolute top-[30%] left-[80%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0.45s' }} />
+                            <div className="absolute top-[70%] left-[40%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0.6s' }} />
+                            <div className="absolute top-[50%] left-[20%] w-1 h-1 bg-violet-400 rounded-full animate-ping" style={{ animationDelay: '0.75s' }} />
+                          </div>
+
+                          {/* Inner glow pulse */}
+                          <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-violet-500/0 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
+                        </div>
                       </div>
                       <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">
                         {t('dropzoneTitle')}
@@ -362,28 +411,6 @@ export default function Home() {
                       <p className="text-slate-400 text-sm mb-8">
                         {t('dropzoneDesc1')}<br />{t('dropzoneDesc2')} <span className="text-violet-400 underline decoration-violet-500/30 underline-offset-4 font-semibold">{t('dropzoneBrowse')}</span>
                       </p>
-
-                      {/* Bottone Upload (Stile Apple VisionOS / Premium Glass) */}
-                      <div className="relative mt-2">
-                        {/* Alone magico che si accende dolcemente dietro il bottone */}
-                        <div className="absolute -inset-1.5 bg-gradient-to-r from-violet-600/0 via-fuchsia-600/40 to-violet-600/0 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition duration-700"></div>
-                        {/* Bordo esterno sottilissimo iridescente (1px p-padding trucco) */}
-                        <div className="relative p-[1px] rounded-full bg-gradient-to-r from-white/5 via-violet-400/50 to-white/5 shadow-[0_8px_16px_rgba(0,0,0,0.4)] transform-gpu transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 will-change-transform">
-                          {/* Interno: Vetro scuro profondo a forma di pillola */}
-                          <div className="relative flex items-center justify-center gap-3 bg-[#0B0F19]/90 backdrop-blur-3xl px-8 py-3.5 rounded-full overflow-hidden">
-                            {/* Il vero tocco Apple: Il riflesso di luce sul bordo superiore interno */}
-                            <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-50"></div>
-                            {/* Testo elegante */}
-                            <span className="text-slate-200 font-semibold tracking-wide text-sm md:text-base transition-colors duration-300 group-hover:text-white relative z-10">
-                              {t('magicBtn')}
-                            </span>
-                            {/* Cerchietto con icona che si illumina */}
-                            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/5 border border-white/10 text-slate-400 group-hover:bg-violet-500 group-hover:border-violet-400 group-hover:text-white transition-all duration-300 shadow-inner relative z-10">
-                              <Sparkles className="w-3.5 h-3.5" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </>
                   )}
                 </label>
@@ -504,7 +531,7 @@ export default function Home() {
                     <div className="ml-0 md:ml-12 mt-5 pt-4 border-t border-white/5">
                       <button onClick={() => toggleTip(qIdx)} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-violet-400 transition-colors">
                         <Lightbulb className={`w-4 h-4 ${expandedTips[qIdx] ? 'text-violet-400' : ''}`} />
-                        {expandedTips[qIdx] ? t('closeInsight') : t('openInsight')}
+                        {expandedTips[qIdx] ? tQuiz('hideTip') : tQuiz('showTip')}
                       </button>
                       {expandedTips[qIdx] && (
                         <div className="mt-3 text-sm leading-relaxed text-slate-300/90 bg-violet-500/5 border border-violet-500/30 px-4 py-3 rounded-xl shadow-inner animate-in fade-in slide-in-from-top-1">
@@ -523,7 +550,7 @@ export default function Home() {
               {/* Contatore Quota Premium */}
               {isLoggedIn && (
                 <div className="bg-[#0B0F19]/90 backdrop-blur-xl px-5 py-2 rounded-full border border-white/10 text-xs font-medium text-slate-400 shadow-2xl">
-                {t('dailyQuota')} <span className={questionsUsedToday >= DAILY_LIMIT ? "text-red-400 font-bold" : "text-white font-bold"}>{questionsUsedToday}</span> / {DAILY_LIMIT} {t('questions')}
+                  {t('dailyQuota')} <span className={questionsUsedToday >= DAILY_LIMIT ? "text-red-400 font-bold" : "text-white font-bold"}>{questionsUsedToday}</span> / {DAILY_LIMIT} {t('questions')}
                 </div>
               )}
 

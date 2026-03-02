@@ -44,7 +44,8 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const t = useTranslations('dashboard');
   const quiz = useTranslations('quiz');
-  
+  const [hideStats, setHideStats] = useState(false);
+
   // Dati File
   const [files, setFiles] = useState<FileRow[]>([]);
   const [filesLoading, setFilesLoading] = useState(true);
@@ -237,7 +238,7 @@ export default function DashboardPage() {
     if (isMobile) {
       try {
         const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-        
+
         // Controlliamo se il telefono supporta il menu di condivisione nativo
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -340,6 +341,28 @@ export default function DashboardPage() {
       }
     }
 
+    // Nascondi stats su scroll down (solo mobile)
+    useEffect(() => {
+      let lastScroll = 0;
+
+      const handleStatsScroll = () => {
+        const currentScroll = window.scrollY;
+
+        if (currentScroll > 200 && currentScroll > lastScroll) {
+          // Scrolling down + oltre 200px
+          setHideStats(true);
+        } else if (currentScroll < lastScroll - 10) {
+          // Scrolling up (con hysteresis)
+          setHideStats(false);
+        }
+
+        lastScroll = currentScroll;
+      };
+
+      window.addEventListener('scroll', handleStatsScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleStatsScroll);
+    }, []);
+
     setQuestions((qData || []) as QuizQuestionRow[]);
     setUserAnswers(answerMap);
     setQuestionsLoading(false);
@@ -372,7 +395,7 @@ export default function DashboardPage() {
 
     questions.forEach(q => {
       const answer = userAnswers[q.id];
-      const topic = q.topic || t('generalTopic'); 
+      const topic = q.topic || t('generalTopic');
 
       if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
 
@@ -406,9 +429,9 @@ export default function DashboardPage() {
       if (score >= 80) {
         feedback = t('feedback.excellent', { topic: bestTopic?.name || t('feedback.fallbackAll') });
       } else if (score >= 50) {
-        feedback = t('feedback.good', { 
-          bestTopic: bestTopic?.name || t('feedback.fallbackSome'), 
-          worstTopic: worstTopic?.name || t('feedback.fallbackCertain') 
+        feedback = t('feedback.good', {
+          bestTopic: bestTopic?.name || t('feedback.fallbackSome'),
+          worstTopic: worstTopic?.name || t('feedback.fallbackCertain')
         });
       } else {
         feedback = t('feedback.needsImprovement', { topic: worstTopic?.name || t('feedback.fallbackNotes') });
@@ -503,7 +526,7 @@ export default function DashboardPage() {
         setQuestions([]);
       }
     } else {
-        alert(t('errorDelete'));
+      alert(t('errorDelete'));
     }
   };
 
@@ -545,7 +568,7 @@ export default function DashboardPage() {
       {/* --- DRAWER LATERALE FILE (Apple iOS Premium Style) --- */}
       <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-500 ease-in-out ${showFileDrawer ? 'visible' : 'invisible'}`}>
         {/* Backdrop (Vetro scuro) */}
-        <div onClick={() => setShowFileDrawer(false)} className={`absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-500 ease-out ${showFileDrawer ? 'opacity-100' : 'opacity-0'}`}/>
+        <div onClick={() => setShowFileDrawer(false)} className={`absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-500 ease-out ${showFileDrawer ? 'opacity-100' : 'opacity-0'}`} />
 
         {/* Pannello Drawer */}
         <div className={`absolute top-0 left-0 h-full w-[85vw] max-w-[360px] bg-[#0B0F19]/80 backdrop-blur-2xl border-r border-white/10 shadow-[30px_0_60px_rgba(0,0,0,0.6)] flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] ${showFileDrawer ? 'translate-x-0' : '-translate-x-full'}`}
@@ -595,14 +618,14 @@ export default function DashboardPage() {
                           setShowFileDrawer(false);
                         }}
                         className={`flex-1 min-w-0 text-left flex items-center gap-3.5 p-3 rounded-[20px] border transition-all duration-200 active:scale-[0.98] ${isActive
-                            ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
-                            : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
+                          ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
+                          : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
                           }`}
                       >
                         {/* Icona Appunto/Documento (Sostituisce la scritta PDF) */}
                         <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-inner ${isActive
-                            ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30'
-                            : 'bg-white/5 text-slate-400 border border-white/5'
+                          ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30'
+                          : 'bg-white/5 text-slate-400 border border-white/5'
                           }`}>
                           <FileText className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
                         </div>
@@ -643,7 +666,7 @@ export default function DashboardPage() {
           <div className="mt-auto p-5 border-t border-white/5 bg-gradient-to-t from-slate-950/80 to-transparent">
             <div className="flex items-center justify-center gap-2 text-slate-400/80 hover:text-slate-300 transition-colors cursor-default">
               <Sparkles className="w-4 h-4 text-violet-400" />
-                <span className="text-xs font-semibold uppercase tracking-widest">{t('brandingTitle')}</span>
+              <span className="text-xs font-semibold uppercase tracking-widest">{t('brandingTitle')}</span>
             </div>
           </div>
         </div>
@@ -672,7 +695,7 @@ export default function DashboardPage() {
 
           {/* COLONNA SINISTRA: LISTA FILE (Desktop Premium UI) */}
           <section className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl flex-col overflow-hidden hidden lg:flex h-full">
-            
+
             {/* Header Desktop Elegante */}
             <div className="p-5 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -713,22 +736,20 @@ export default function DashboardPage() {
                     const isActive = file.id === selectedFileId;
                     return (
                       <li key={file.id} className="relative group flex items-center gap-2">
-                        
+
                         {/* Card File Interattiva */}
                         <button
                           onClick={() => setSelectedFileId(file.id)}
-                          className={`flex-1 min-w-0 text-left flex items-center gap-3.5 p-3 rounded-[20px] border transition-all duration-200 active:scale-[0.98] ${
-                            isActive
-                              ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
-                              : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
-                          }`}
+                          className={`flex-1 min-w-0 text-left flex items-center gap-3.5 p-3 rounded-[20px] border transition-all duration-200 active:scale-[0.98] ${isActive
+                            ? "border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 shadow-lg shadow-violet-900/20"
+                            : "border-transparent bg-white/[0.03] hover:bg-white/[0.06] text-slate-300"
+                            }`}
                         >
                           {/* Icona Appunto/Documento (Apple Style) */}
-                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-inner ${
-                            isActive 
-                              ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30' 
-                              : 'bg-white/5 text-slate-400 border border-white/5 group-hover:text-slate-300'
-                          }`}>
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-inner ${isActive
+                            ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-violet-500/30'
+                            : 'bg-white/5 text-slate-400 border border-white/5 group-hover:text-slate-300'
+                            }`}>
                             <FileText className="w-5 h-5" strokeWidth={isActive ? 2 : 1.5} />
                           </div>
 
@@ -741,7 +762,7 @@ export default function DashboardPage() {
                               {t('uploadedOnPrefix')} {new Date(file.uploaded_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                           </div>
-                          
+
                           {/* Indicatore Attivo */}
                           {isActive && <ChevronRight className="w-4 h-4 text-violet-400 flex-shrink-0 mr-1" />}
                         </button>
@@ -752,9 +773,8 @@ export default function DashboardPage() {
                             e.stopPropagation();
                             handleDeleteFile(file.id);
                           }}
-                          className={`flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90 ${
-                            isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                          }`}
+                          className={`flex-shrink-0 p-3.5 text-slate-500 hover:text-red-400 hover:bg-red-500/15 bg-white/[0.02] border border-transparent hover:border-red-500/20 rounded-[18px] transition-all active:scale-90 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
                           title={t('deleteFileTooltip')}
                         >
                           <Trash2 className="w-4 h-4" strokeWidth={2} />
@@ -765,7 +785,7 @@ export default function DashboardPage() {
                 </ul>
               )}
             </div>
-            
+
             {/* Piccolo Footer Sfumato inferiore (Opzionale, dà un tocco di chiusura) */}
             <div className="h-4 w-full bg-gradient-to-t from-slate-900/60 to-transparent pointer-events-none absolute bottom-0"></div>
           </section>
@@ -914,7 +934,8 @@ export default function DashboardPage() {
 
             {/* BARRA PROGRESSI MODIFICATA (Spazi ravvicinati) */}
             {stats && stats.total > 0 && (
-              <div className="flex flex-col gap-3 mx-4 md:mx-6 mt-4 mb-2">
+              <div className={`flex flex-col gap-3 mx-4 md:mx-6 mt-4 mb-2 transition-all duration-500 ease-out ${hideStats ? 'max-h-0 opacity-0 pointer-events-none lg:max-h-[500px] lg:opacity-100 lg:pointer-events-auto' : 'max-h-[500px] opacity-100'
+                }`}>
 
                 {/* Griglia a 3 colonne */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-slate-800/50 p-3 rounded-xl border border-white/5">
@@ -965,7 +986,8 @@ export default function DashboardPage() {
 
             {/* GRAFICO ARGOMENTI */}
             {stats && stats.chartData.length > 0 && (
-              <div className="mx-4 md:mx-6 mb-4 bg-slate-900/40 rounded-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+              <div className={`mx-4 md:mx-6 mb-4 bg-slate-900/40 rounded-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 ease-out ${hideStats ? 'max-h-0 opacity-0 pointer-events-none lg:max-h-[500px] lg:opacity-100 lg:pointer-events-auto' : 'max-h-[500px] opacity-100'
+                }`}>
 
                 {/* Bottone per aprire/chiudere */}
                 <button
@@ -1001,7 +1023,7 @@ export default function DashboardPage() {
                         <Tooltip
                           cursor={{ fill: 'rgba(255,255,255,0.02)' }}
                           contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
-                          formatter={(value: any) => [`${value}%`, 'Esatte']}
+                          formatter={(value: any) => [`${value}% ` + t('chartTooltipCorrect')]}
                         />
                         <Bar dataKey="score" fill="url(#colorViolet)" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
@@ -1034,7 +1056,7 @@ export default function DashboardPage() {
               ) : questionsError ? (
                 /* Errore */
                 <div className="p-5 mt-10 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col items-center text-center animate-in fade-in">
-                  <AlertCircle className="w-8 h-8 text-red-400 mb-2" /> 
+                  <AlertCircle className="w-8 h-8 text-red-400 mb-2" />
                   <p className="text-red-400/90 text-sm font-medium">{questionsError}</p>
                 </div>
               ) : questions.length === 0 ? (
@@ -1045,11 +1067,11 @@ export default function DashboardPage() {
                   </div>
                   <h3 className="text-base font-bold text-slate-200">{t('readyToStart')}</h3>
                   <p className="text-slate-400 text-sm mt-1 mb-5">{t('noQuestionsYet')}</p>
-                  <button 
-                    onClick={handleGenerateMore} 
+                  <button
+                    onClick={handleGenerateMore}
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 rounded-full text-white font-semibold text-sm shadow-md transition-all active:scale-95"
                   >
-                      <Plus className="w-4 h-4" /> {t('generateFirst10')}
+                    <Plus className="w-4 h-4" /> {t('generateFirst10')}
                   </button>
                 </div>
               ) : (
@@ -1061,20 +1083,20 @@ export default function DashboardPage() {
                     const isCorrect = userAnswer === q.correct_answer;
 
                     return (
-                      <div 
-                        key={q.id} 
+                      <div
+                        key={q.id}
                         className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
                         style={{ animationDelay: `${index * 40}ms` }}
                       >
                         {/* --- INTESTAZIONE DOMANDA (Adattiva Mobile/Desktop) --- */}
                         <div className="flex flex-col md:flex-row md:items-start gap-2.5 md:gap-4 mb-4 md:mb-5">
-                          
+
                           {/* RIGA 1 (Mobile) / SINISTRA (PC): Badge Numerico */}
                           <div className="flex items-center gap-3 md:mt-0.5 md:flex-shrink-0">
                             <div className="w-6 h-6 md:w-7 md:h-7 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-bold font-mono shadow-inner flex-shrink-0">
                               {index + 1}
                             </div>
-                            
+
                             {/* Argomento: Mostrato a fianco del numero SOLO su telefono */}
                             {q.topic && (
                               <span className="md:hidden inline-block text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
@@ -1082,10 +1104,10 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          
+
                           {/* RIGA 2 (Mobile) / DESTRA (PC): Testo Domanda */}
                           <div className="flex-1 w-full mt-1 md:mt-0">
-                            
+
                             {/* Argomento: Mostrato sopra la domanda SOLO su PC */}
                             {q.topic && (
                               <span className="hidden md:inline-block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
@@ -1104,20 +1126,20 @@ export default function DashboardPage() {
                           {q.options.map((opt) => {
                             const isSelected = userAnswer === opt;
                             const isTheCorrectOne = opt === q.correct_answer;
-                            
-                            let btnClass = "border-white/5 bg-white/[0.01] text-slate-300"; 
-                            let glowColor = "rgba(139, 92, 246, 0.15)"; 
-                            
+
+                            let btnClass = "border-white/5 bg-white/[0.01] text-slate-300";
+                            let glowColor = "rgba(139, 92, 246, 0.15)";
+
                             if (hasAnswered) {
                               if (isTheCorrectOne) {
                                 btnClass = "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.1)]";
-                                glowColor = "rgba(16, 185, 129, 0.2)"; 
+                                glowColor = "rgba(16, 185, 129, 0.2)";
                               } else if (isSelected && !isCorrect) {
                                 btnClass = "border-red-500/40 bg-red-500/10 text-red-200";
-                                glowColor = "rgba(239, 68, 68, 0.15)"; 
+                                glowColor = "rgba(239, 68, 68, 0.15)";
                               } else {
                                 btnClass = "border-transparent bg-transparent text-slate-500/40";
-                                glowColor = "transparent"; 
+                                glowColor = "transparent";
                               }
                             }
 
@@ -1136,20 +1158,20 @@ export default function DashboardPage() {
                                 className={`group relative w-full text-left px-4 py-3 rounded-xl border text-sm transition-all duration-300 flex justify-between items-center overflow-hidden ${hasAnswered ? 'cursor-default' : 'hover:border-white/10 hover:text-white active:scale-[0.99]'} ${btnClass}`}
                               >
                                 {!hasAnswered && (
-                                  <div 
+                                  <div
                                     className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-0"
                                     style={{ background: `radial-gradient(400px circle at var(--x, 50%) var(--y, 50%), ${glowColor}, transparent 40%)` }}
                                   />
                                 )}
                                 {hasAnswered && isTheCorrectOne && (
-                                  <div 
+                                  <div
                                     className="pointer-events-none absolute inset-0 opacity-100 z-0"
                                     style={{ background: `radial-gradient(800px circle at 0% 50%, ${glowColor}, transparent 100%)` }}
                                   />
                                 )}
 
                                 <span className="relative z-10 pr-4 leading-relaxed">{opt}</span>
-                                
+
                                 {hasAnswered && isTheCorrectOne && (
                                   <CheckCircle2 className="w-4 h-4 text-emerald-400 relative z-10 flex-shrink-0 animate-in zoom-in" />
                                 )}
@@ -1168,10 +1190,10 @@ export default function DashboardPage() {
                             onClick={() => toggleTip(q.id)}
                             className="text-xs font-medium text-slate-400 hover:text-violet-400 flex items-center gap-1.5 transition-colors"
                           >
-                            <Lightbulb className={`w-3.5 h-3.5 ${expandedTips[q.id] ? 'text-violet-400' : ''}`} /> 
-                            {expandedTips[q.id] ? quiz('showTip') : quiz('hideTip')}
+                            <Lightbulb className={`w-3.5 h-3.5 ${expandedTips[q.id] ? 'text-violet-400' : ''}`} />
+                            {expandedTips[q.id] ? quiz('hideTip') : quiz('showTip')}
                           </button>
-                          
+
                           {/* Box Insight Tutto Tondo e Bordo Viola */}
                           {expandedTips[q.id] && (
                             <div className="mt-3 text-xs md:text-sm leading-relaxed text-slate-300/90 bg-violet-500/5 border border-violet-500/40 px-4 py-3 rounded-xl shadow-sm shadow-violet-900/20 animate-in fade-in slide-in-from-top-1">

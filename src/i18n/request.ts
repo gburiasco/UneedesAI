@@ -1,10 +1,17 @@
-import {getRequestConfig} from 'next-intl/server';
+import { getRequestConfig } from 'next-intl/server';
 
-export default getRequestConfig(async ({locale}) => {
-  const currentLocale = locale || 'it';
+export default getRequestConfig(async ({ requestLocale }) => {
+  // 1. In Next.js 15, requestLocale è una Promise. Dobbiamo usare 'await'
+  let locale = await requestLocale;
+  
+  // 2. Fallback di sicurezza
+  if (!locale) {
+    locale = 'it';
+  }
   
   return {
-    locale: currentLocale,
-    messages: (await import(`./messages/${currentLocale}.json`)).default
+    locale,
+    // 3. Importa dinamicamente il file corretto
+    messages: (await import(`../i18n/messages/${locale}.json`)).default
   };
 });
