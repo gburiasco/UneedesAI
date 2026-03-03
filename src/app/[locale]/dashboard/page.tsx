@@ -8,7 +8,6 @@ import { Header } from "../../../components/header";
 import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction, deleteFileAction, resetQuizAnswersAction } from "../../actions";
 import { PaywallModal } from "../../../components/paywall-modal";
 import { X, Eraser, Download, Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useTranslations } from "next-intl";
 
 type FileRow = {
@@ -44,7 +43,6 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const t = useTranslations('dashboard');
   const quiz = useTranslations('quiz');
-  const [hideStats, setHideStats] = useState(false);
 
   // Dati File
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -302,6 +300,20 @@ export default function DashboardPage() {
     loadFiles();
   }, [userId]);
 
+  // Trigger caricamento quando cambia file
+  useEffect(() => {
+    loadQuestions();
+  }, [selectedFileId, userId]);
+
+  // Scroll button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // 3. Fetch Quiz E RISPOSTE (Funzione Corretta)
   const loadQuestions = async () => {
     if (!selectedFileId || !userId) return;
@@ -340,48 +352,12 @@ export default function DashboardPage() {
         });
       }
     }
-
-    // Nascondi stats su scroll down (solo mobile)
-    useEffect(() => {
-      let lastScroll = 0;
-
-      const handleStatsScroll = () => {
-        const currentScroll = window.scrollY;
-
-        if (currentScroll > 200 && currentScroll > lastScroll) {
-          // Scrolling down + oltre 200px
-          setHideStats(true);
-        } else if (currentScroll < lastScroll - 10) {
-          // Scrolling up (con hysteresis)
-          setHideStats(false);
-        }
-
-        lastScroll = currentScroll;
-      };
-
-      window.addEventListener('scroll', handleStatsScroll, { passive: true });
-      return () => window.removeEventListener('scroll', handleStatsScroll);
-    }, []);
-
     setQuestions((qData || []) as QuizQuestionRow[]);
     setUserAnswers(answerMap);
     setQuestionsLoading(false);
   };
 
-  // Trigger caricamento quando cambia file
-  useEffect(() => {
-    loadQuestions();
-  }, [selectedFileId, userId]);
 
-  // Mostra bottone scroll-to-top quando scrolli
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      setShowScrollTop(scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // --- CALCOLO STATISTICHE AVANZATE ---
   const stats = useMemo(() => {
@@ -932,10 +908,9 @@ export default function DashboardPage() {
 
             {/* BARRA PROGRESSI E RESTO DEL CODICE... */}
 
-            {/* BARRA PROGRESSI MODIFICATA (Spazi ravvicinati) */}
+            {/* BARRA PROGRESSI - Con animazione smooth scroll */}
             {stats && stats.total > 0 && (
-              <div className={`flex flex-col gap-3 mx-4 md:mx-6 mt-4 mb-2 transition-all duration-500 ease-out ${hideStats ? 'max-h-0 opacity-0 pointer-events-none lg:max-h-[500px] lg:opacity-100 lg:pointer-events-auto' : 'max-h-[500px] opacity-100'
-                }`}>
+              <div className="flex flex-col gap-3 mx-4 md:mx-6 mt-4 mb-2 transition-all duration-500 ease-out">
 
                 {/* Griglia a 3 colonne */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-slate-800/50 p-3 rounded-xl border border-white/5">
@@ -959,7 +934,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Da ripassare */}
                   <div className="col-span-2 md:col-span-1 flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-red-500/10 text-red-400 flex-shrink-0">
                       <PieChart className="w-5 h-5" />
@@ -972,22 +946,20 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Banner Feedback */}
-                {stats.answered > 0 && (
-                  <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 p-3 rounded-xl text-sm flex items-start md:items-center gap-3 animate-in fade-in">
-                    <Sparkles className="w-5 h-5 flex-shrink-0 text-indigo-400 mt-0.5 md:mt-0" />
-                    <p className="font-medium">{stats.feedback}</p>
-                  </div>
-                )}
               </div>
             )}
-            {/* Fine Barra Progressi */}
 
-            {/* GRAFICO ARGOMENTI */}
+            {/* FEEDBACK AI - SEMPRE VISIBILE (fuori dal container sopra) */}
+            {stats && stats.answered > 0 && (
+              <div className="mx-4 md:mx-6 mb-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 p-3 rounded-xl text-sm flex items-start md:items-center gap-3 animate-in fade-in">
+                <Sparkles className="w-5 h-5 flex-shrink-0 text-indigo-400 mt-0.5 md:mt-0" />
+                <p className="font-medium">{stats.feedback}</p>
+              </div>
+            )}
+
+            {/* GRAFICO ARGOMENTI - SEMPRE VISIBILE */}
             {stats && stats.chartData.length > 0 && (
-              <div className={`mx-4 md:mx-6 mb-4 bg-slate-900/40 rounded-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 ease-out ${hideStats ? 'max-h-0 opacity-0 pointer-events-none lg:max-h-[500px] lg:opacity-100 lg:pointer-events-auto' : 'max-h-[500px] opacity-100'
-                }`}>
+              <div className="mx-4 md:mx-6 mb-4 bg-slate-900/40 rounded-xl border border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
 
                 {/* Bottone per aprire/chiudere */}
                 <button
@@ -1000,36 +972,52 @@ export default function DashboardPage() {
                       {t('chartTitle')}
                     </h3>
                   </div>
-                  {isGraphExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-slate-500" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-500" />
-                  )}
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isGraphExpanded ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Corpo del Grafico (visibile solo se espanso) */}
-                {isGraphExpanded && (
-                  <div className="p-5 pt-0 h-[220px] w-full border-t border-white/5 mt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stats.chartData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorViolet" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
-                        <Tooltip
-                          cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                          contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
-                          formatter={(value: any) => [`${value}% ` + t('chartTooltipCorrect')]}
-                        />
-                        <Bar dataKey="score" fill="url(#colorViolet)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {/* Contenuto Grafico Espandibile - Design Lineare Premium (2 Colonne) */}
+                <div className={`transition-all duration-500 ease-out ${isGraphExpanded ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {/* Contenitore con scrollbar interna, si attiva solo se serve davvero */}
+                  <div className="p-5 pt-1 overflow-y-auto custom-scrollbar max-h-[400px]">
+                    {/* Griglia: 1 colonna su telefono, 2 colonne su PC */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                      {stats.chartData.map((entry: any, index: number) => {
+                        // Determina colori e stati
+                        const isDanger = entry.score < 50;
+                        const isSuccess = entry.score >= 80;
+                        
+                        const colorClass = isDanger
+                          ? "from-red-600 to-rose-400"
+                          : isSuccess
+                            ? "from-violet-600 to-fuchsia-500" 
+                            : "from-amber-500 to-orange-400";
+
+                        const textClass = isDanger ? "text-red-400" : isSuccess ? "text-fuchsia-300" : "text-amber-400";
+
+                        return (
+                          <div key={index} className="flex flex-col gap-1.5">
+                            <div className="flex justify-between items-end text-sm">
+                              <span className="font-semibold text-slate-200 truncate pr-4">{entry.name}</span>
+                              <span className={`font-bold flex-shrink-0 ${textClass}`}>{entry.score}%</span>
+                            </div>
+
+                            {/* Track della barra */}
+                            <div className="h-2 w-full bg-slate-950/80 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                              {/* Riempimento animato */}
+                              <div
+                                className={`h-full rounded-full transition-all duration-1000 ease-out bg-gradient-to-r relative ${colorClass}`}
+                                style={{ width: `${entry.score}%` }}
+                              >
+                                {/* Effetto luce (glow) interno alla Apple */}
+                                <div className="absolute top-0 right-0 bottom-0 w-3 bg-white/20 blur-[1px] rounded-full"></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
             {/* Fine Grafico */}

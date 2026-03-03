@@ -258,40 +258,36 @@ export default function Home() {
 
       <Header />
 
-      <main className="z-10 flex-1 flex flex-col items-center pt-12 md:pt-20 px-4 pb-24 max-w-5xl mx-auto w-full">
-
+      <main className="z-10 flex-1 flex flex-col items-center pt-28 sm:pt-24 md:pt-28 px-4 pb-24 max-w-5xl mx-auto w-full">
         {/* HERO SECTION (Dinamica) */}
         {!quizData && (
           <div className="text-center mb-16 relative w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700">
 
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-violet-300 mb-8 backdrop-blur-sm shadow-[0_0_15px_rgba(139,92,246,0.1)]">
+            {/* Badge con z-index alto + margine superiore aumentato */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-violet-300 mb-8 backdrop-blur-sm shadow-[0_0_15px_rgba(139,92,246,0.1)] relative z-50 mt-2 sm:mt-2">
               <Sparkles className="w-3.5 h-3.5 text-violet-400" />
               <span>{t('heroBadge')}</span>
             </div>
-
-            {/* Impostiamo un'altezza minima fissa per evitare che la pagina "salti" quando le parole cambiano */}
-            {/* Impostiamo un'altezza minima fissa per evitare che la pagina "salti" quando le parole cambiano */}
-            <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-6 leading-[1.1] min-h-[120px] md:min-h-[150px]">
+            {/* Titolo Hero - Auto-height responsive */}
+            <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-6 leading-[1.1]">
               <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-slate-500">
                 {t('heroTitlePrefix')}
               </span>
               <br />
-              <div className="relative h-[1.3em] overflow-hidden">
+              <div className="relative inline-block w-full mt-2">
                 {heroWords.map((word, i) => (
                   <span
                     key={i}
-                    className={`absolute inset-0 text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-500 transition-all duration-700 ease-out ${i === wordIndex
-                      ? 'translate-y-0 opacity-100'
-                      : i === (wordIndex - 1 + heroWords.length) % heroWords.length
-                        ? '-translate-y-full opacity-0'
-                        : 'translate-y-full opacity-0'
+                    className={`block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-500 transition-all duration-700 ease-out ${i === wordIndex
+                      ? 'relative opacity-100'
+                      : 'absolute top-0 left-0 opacity-0'
                       }`}
                     style={{
                       transform: i === wordIndex
-                        ? 'translateY(0) scale(1)'
+                        ? 'scale(1)'
                         : i === (wordIndex - 1 + heroWords.length) % heroWords.length
-                          ? 'translateY(-120%) scale(0.9)'
-                          : 'translateY(120%) scale(0.9)'
+                          ? 'scale(0.9)'
+                          : 'scale(0.9)'
                     }}
                   >
                     {word}

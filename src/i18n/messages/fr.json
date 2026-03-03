@@ -62,7 +62,28 @@
         "hasAccount": "Déjà un compte ?",
         "switchToSignup": "S'inscrire",
         "switchToLogin": "Se connecter",
-        "defaultError": "Erreur lors de l'authentification."
+        "defaultError": "Erreur lors de l'authentification.",
+        "checkEmail": "Compte créé ! Vérifiez votre e-mail pour confirmer votre inscription.",
+        "resetTitle": "Récupérer le mot de passe",
+        "resetSubtitle": "Entrez votre e-mail et nous vous enverrons les instructions.",
+        "backToLogin": "Retour à la connexion",
+        "forgotPassword": "Mot de passe oublié ?",
+        "resetBtn": "Envoyer le lien de récupération",
+        "resetSuccess": "Nous vous avons envoyé un e-mail avec le lien pour réinitialiser votre mot de passe !",
+        "resetError": "Erreur lors de l'envoi de l'e-mail de récupération.",
+        "invalidCredentials": "E-mail ou mot de passe invalide."
+    },
+    "updatePassword": {
+        "title": "Nouveau mot de passe",
+        "subtitle": "Choisissez un mot de passe sécurisé pour votre compte.",
+        "subtitleSuccess": "Tout est prêt pour repartir.",
+        "newPasswordLabel": "Nouveau mot de passe",
+        "newPasswordPlaceholder": "Au moins 6 caractères",
+        "successTitle": "Mot de passe mis à jour !",
+        "successDesc": "Votre mot de passe a été modifié avec succès. Vous pouvez maintenant accéder à votre compte.",
+        "dashboardBtn": "Aller au Tableau de bord",
+        "saveBtn": "Enregistrer le nouveau mot de passe",
+        "error": "Erreur lors de la mise à jour du mot de passe."
     },
     "dashboard": {
         "title": "Votre Tableau de Bord",

@@ -62,7 +62,28 @@
         "hasAccount": "Bereits ein Konto?",
         "switchToSignup": "Registrieren",
         "switchToLogin": "Anmelden",
-        "defaultError": "Authentifizierungsfehler aufgetreten."
+        "defaultError": "Authentifizierungsfehler aufgetreten.",
+        "checkEmail": "Konto erstellt! Überprüfe deine E-Mail, um deine Registrierung zu bestätigen.",
+        "resetTitle": "Passwort wiederherstellen",
+        "resetSubtitle": "Gib deine E-Mail ein und wir senden dir die Anleitung.",
+        "backToLogin": "Zurück zur Anmeldung",
+        "forgotPassword": "Passwort vergessen?",
+        "resetBtn": "Wiederherstellungslink senden",
+        "resetSuccess": "Wir haben dir eine E-Mail mit dem Link zum Zurücksetzen deines Passworts gesendet!",
+        "resetError": "Fehler beim Senden der Wiederherstellungs-E-Mail.",
+        "invalidCredentials": "E-Mail oder Passwort ungültig."
+    },
+    "updatePassword": {
+        "title": "Neues Passwort",
+        "subtitle": "Wähle ein sicheres Passwort für dein Konto.",
+        "subtitleSuccess": "Alles bereit zum Starten.",
+        "newPasswordLabel": "Neues Passwort",
+        "newPasswordPlaceholder": "Mindestens 6 Zeichen",
+        "successTitle": "Passwort aktualisiert!",
+        "successDesc": "Dein Passwort wurde erfolgreich geändert. Du kannst dich nun in dein Konto einloggen.",
+        "dashboardBtn": "Zum Dashboard",
+        "saveBtn": "Neues Passwort speichern",
+        "error": "Fehler beim Aktualisieren des Passworts."
     },
     "dashboard": {
         "title": "Dein Dashboard",

@@ -62,7 +62,28 @@
         "hasAccount": "Hai già un account?",
         "switchToSignup": "Registrati",
         "switchToLogin": "Accedi",
-        "defaultError": "Errore durante l'autenticazione."
+        "defaultError": "Errore durante l'autenticazione.",
+        "checkEmail": "Account creato! Controlla la tua email per confermare la registrazione.",
+        "resetTitle": "Recupera Password",
+        "resetSubtitle": "Inserisci la tua email e ti invieremo le istruzioni.",
+        "backToLogin": "Torna al login",
+        "forgotPassword": "Password dimenticata?",
+        "resetBtn": "Invia Link di Recupero",
+        "resetSuccess": "Ti abbiamo inviato un'email con il link per reimpostare la password!",
+        "resetError": "Errore durante l'invio dell'email di recupero.",
+        "invalidCredentials": "Email o password non valide."
+    },
+    "updatePassword": {
+        "title": "Nuova Password",
+        "subtitle": "Scegli una password sicura per il tuo account.",
+        "subtitleSuccess": "Tutto pronto per ripartire.",
+        "newPasswordLabel": "Nuova Password",
+        "newPasswordPlaceholder": "Almeno 6 caratteri",
+        "successTitle": "Password aggiornata!",
+        "successDesc": "La tua password è stata cambiata con successo. Ora puoi accedere al tuo account.",
+        "dashboardBtn": "Vai alla Dashboard",
+        "saveBtn": "Salva nuova password",
+        "error": "Errore durante l'aggiornamento della password."
     },
     "dashboard": {
         "title": "La tua Dashboard",

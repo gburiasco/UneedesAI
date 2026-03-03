@@ -62,7 +62,28 @@
         "hasAccount": "¿Ya tienes cuenta?",
         "switchToSignup": "Regístrate",
         "switchToLogin": "Inicia sesión",
-        "defaultError": "Error durante la autenticación."
+        "defaultError": "Error durante la autenticación.",
+        "checkEmail": "¡Cuenta creada! Revisa tu correo para confirmar tu registro.",
+        "resetTitle": "Recuperar Contraseña",
+        "resetSubtitle": "Ingresa tu correo y te enviaremos las instrucciones.",
+        "backToLogin": "Volver al inicio de sesión",
+        "forgotPassword": "¿Olvidaste tu contraseña?",
+        "resetBtn": "Enviar Enlace de Recuperación",
+        "resetSuccess": "¡Te hemos enviado un correo con el enlace para restablecer tu contraseña!",
+        "resetError": "Error al enviar el correo de recuperación.",
+        "invalidCredentials": "Correo o contraseña inválidos."
+    },
+    "updatePassword": {
+        "title": "Nueva Contraseña",
+        "subtitle": "Elige una contraseña segura para tu cuenta.",
+        "subtitleSuccess": "Todo listo para empezar.",
+        "newPasswordLabel": "Nueva Contraseña",
+        "newPasswordPlaceholder": "Al menos 6 caracteres",
+        "successTitle": "¡Contraseña actualizada!",
+        "successDesc": "Tu contraseña se ha cambiado con éxito. Ahora puedes acceder a tu cuenta.",
+        "dashboardBtn": "Ir al Panel",
+        "saveBtn": "Guardar nueva contraseña",
+        "error": "Error al actualizar la contraseña."
     },
     "dashboard": {
         "title": "Tu Panel",
