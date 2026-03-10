@@ -58,6 +58,16 @@ export default function DashboardPage() {
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
 
+  // Stati Export PDF Modal
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportOptions, setExportOptions] = useState({
+    includeQuestions: true,
+    includeAnswers: true,
+    includeExplanations: true,
+    printFriendly: true
+  });
+
   // SINTETIZZATORE AUDIO (Genera i suoni via codice senza file mp3)
   const playSound = (type: 'correct' | 'wrong') => {
     try {
@@ -94,176 +104,597 @@ export default function DashboardPage() {
     }
   };
 
-  // --- ESPORTAZIONE PDF PROFESSIONALE ---
-  const handleExportPDF = async () => {
+  // Apre il modal di personalizzazione
+  const handleExportPDF = () => {
     if (!questions.length) return;
+    setShowExportModal(true);
+    setExportProgress(0);
+  };
 
+
+  // FUNZIONE VERA DI EXPORT (chiamata dal modal dopo conferma)
+  const generatePDFEnterprise = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
     let y = 30;
     let pageNum = 1;
 
-    // Funzione per disegnare l'intestazione e il footer su ogni pagina
-    const addBranding = () => {
-      // Header: Logo testuale
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.setTextColor(139, 92, 246); // Viola Uneedes
-      doc.text("Uneedes AI", margin, 15);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(150, 150, 150);
-      doc.text(t('pdfSubtitle'), margin + 35, 15);
-
-      // Footer con link cliccabile
-      doc.setFontSize(9);
-      const footerText = t('pdfFooterPrefix') + ' - uneedes-ai.vercel.app   |   ' + t('pdfPage') + ' ' + pageNum;
-      const textWidth = doc.getTextWidth(footerText);
-      doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
-
-      // Crea l'area cliccabile invisibile (ignorando i capricci di TypeScript)
-      (doc as any).link((pageWidth / 2) - (textWidth / 2), pageHeight - 14, textWidth, 6, { url: 'https://uneedes-ai.vercel.app' });
+    // Palette colori fedele al tuo screenshot
+    const colors = {
+      primary: [139, 92, 246] as [number, number, number],      // Viola Uneedes (#8b5cf6)
+      primaryLight: [237, 233, 254] as [number, number, number],// Viola chiarissimo
+      text: [30, 41, 59] as [number, number, number],           // Slate-800
+      textLight: [100, 116, 139] as [number, number, number],   // Slate-500
+      topicBg: [243, 244, 246] as [number, number, number],     // Grigio chiaro per i topic (#f3f4f6)
+      border: [226, 232, 240] as [number, number, number],      // Slate-200
+      success: [16, 185, 129] as [number, number, number],      // Green per soluzioni
+      warning: [245, 158, 11] as [number, number, number]
     };
 
-    addBranding();
+    setExportProgress(10);
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Titolo del file
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(30, 41, 59);
-    const title = doc.splitTextToSize(t('pdfQuizTitlePrefix') + (selectedFile?.filename || t('pdfDefaultDocName')), pageWidth - margin * 2);
-    doc.text(title, margin, y);
-    y += (title.length * 8) + 10;
-
-    // --- 1. STAMPA DELLE DOMANDE CON I CERCHIETTI (PAGINE INIZIALI) ---
-    questions.forEach((q, index) => {
+    const addBranding = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+      doc.text("UNEEDES", margin, 15);
 
-      const qText = `${index + 1}. ${q.question_text}`;
-      const splitQ = doc.splitTextToSize(qText, pageWidth - margin * 2);
-
-      // Controllo fine pagina
-      if (y + (splitQ.length * 6) + (q.options.length * 6) > pageHeight - 20) {
-        doc.addPage();
-        pageNum++;
-        addBranding();
-        y = 30;
-      }
-
-      doc.text(splitQ, margin, y);
-      y += (splitQ.length * 6) + 3;
-
-      // Opzioni con i cerchietti vuoti
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(7);
+      doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+      doc.text("AI-Powered Quiz Generator", margin + 25, 15);
 
-      q.options.forEach((opt) => {
-        const optText = doc.splitTextToSize(`O   ${opt}`, pageWidth - margin * 2 - 5);
-        doc.text(optText, margin + 5, y);
-        y += (optText.length * 6) + 1;
-      });
-      y += 8; // Spazio tra le domande
-    });
+      doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+      doc.setLineWidth(0.8);
+      doc.line(margin, 18, pageWidth - margin, 18);
 
-    // --- 2. PAGINA SEPARATA DELLE SOLUZIONI E SPIEGAZIONI ---
-    doc.addPage();
-    pageNum++;
-    addBranding();
-    y = 30;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+      const footerText = `uneedes-ai.vercel.app`;
+      const pageText = `Pagina ${pageNum}`;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(139, 92, 246);
-    doc.text(t('pdfSolutionsTitle'), margin, y);
-    y += 15;
+      doc.text(footerText, margin, pageHeight - 12);
+      doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 12);
+    };
 
-    questions.forEach((q, index) => {
-      // Controllo salto pagina per le soluzioni (alzato a 50 per sicurezza)
-      if (y > pageHeight - 50) {
-        doc.addPage();
-        pageNum++;
-        addBranding();
-        y = 30;
-      }
+// ============================================
+// COVER PAGE 
+// ============================================
 
-      // Stampa il Testo della Domanda
+// Gradient background simulato (3 rettangoli sfumati)
+doc.setFillColor(250, 249, 255);
+doc.rect(0, 0, pageWidth, pageHeight / 3, 'F');
+doc.setFillColor(248, 246, 255);
+doc.rect(0, pageHeight / 3, pageWidth, pageHeight / 3, 'F');
+doc.setFillColor(245, 243, 255);
+doc.rect(0, (pageHeight / 3) * 2, pageWidth, pageHeight / 3, 'F');
+
+// Pattern decorativo (linee diagonali sottili top-right)
+doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.setLineWidth(0.2);
+for (let i = 0; i < 8; i++) {
+  const startX = pageWidth - 40 + (i * 5);
+  doc.line(startX, 0, startX + 30, 30);
+}
+
+y = 5;
+
+// Badge "AI-Powered" moderno in alto
+doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.roundedRect((pageWidth - 60) / 2, y, 60, 8, 4, 4, 'F');
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.setTextColor(255, 255, 255);
+const badgeText = "AI-POWERED";
+const badgeW = doc.getTextWidth(badgeText);
+doc.text(badgeText, (pageWidth - badgeW) / 2, y + 5);
+
+y += 20;
+
+// Logo grande con effetto 3D
+const logoSize = 35;
+const logoX = (pageWidth - logoSize) / 2;
+
+// Ombra 3D (3 layers)
+doc.setFillColor(220, 200, 250);
+doc.roundedRect(logoX + 3, y + 3, logoSize, logoSize, 10, 10, 'F');
+doc.setFillColor(210, 190, 246);
+doc.roundedRect(logoX + 2, y + 2, logoSize, logoSize, 10, 10, 'F');
+doc.setFillColor(200, 180, 242);
+doc.roundedRect(logoX + 1, y + 1, logoSize, logoSize, 10, 10, 'F');
+
+// Logo principale
+doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.roundedRect(logoX, y, logoSize, logoSize, 10, 10, 'F');
+
+// Lettera U con glow
+doc.setFont("helvetica", "bold");
+doc.setFontSize(32);
+doc.setTextColor(255, 255, 255);
+const uText = "U";
+const uWidth = doc.getTextWidth(uText);
+doc.text(uText, logoX + (logoSize - uWidth) / 2, y + 23);
+
+y += logoSize + 18;
+
+// Brand Name grande
+doc.setFont("helvetica", "bold");
+doc.setFontSize(36);
+doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+const brandName = "UNEEDES";
+const brandW = doc.getTextWidth(brandName);
+doc.text(brandName, (pageWidth - brandW) / 2, y);
+
+y += 8;
+
+// Tagline con spacing
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+const tagline = "Q U I Z   G E N E R A T O R";
+const taglineW = doc.getTextWidth(tagline);
+doc.text(tagline, (pageWidth - taglineW) / 2, y);
+
+y += 4;
+
+// Linea decorativa centrata
+const lineLength = 40;
+doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.setLineWidth(1);
+doc.line((pageWidth - lineLength) / 2, y, (pageWidth + lineLength) / 2, y);
+
+y += 4;
+
+// Titolo documento in box premium
+doc.setFillColor(255, 255, 255);
+doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+doc.setLineWidth(0.5);
+doc.roundedRect(margin + 8, y, contentWidth - 16, 16, 8, 8, 'FD');
+
+// Ombra interna simulata
+doc.setDrawColor(240, 240, 245);
+doc.setLineWidth(0.3);
+doc.roundedRect(margin + 9, y + 1, contentWidth - 18, 43, 7, 7, 'S');
+
+y += 10;
+doc.setFont("helvetica", "bold");
+doc.setFontSize(16);
+doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+const titleLines = doc.splitTextToSize(
+  selectedFile?.filename.replace(/\.pdf$/i, '') || 'Quiz di Esercitazione',
+  contentWidth - 28
+);
+titleLines.forEach((line: string) => {
+  const lineWidth = doc.getTextWidth(line);
+  doc.text(line, (pageWidth - lineWidth) / 2, y);
+  y += 5;
+});
+
+y = 125;
+
+// Stats cards in griglia
+const cardWidth = (contentWidth - 16) / 3;
+const cardHeight = 35;
+const cardGap = 4;
+const startX = margin + 8;
+
+const uniqueTopics = [...new Set(questions.map(q => q.topic).filter(Boolean))];
+const today = new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// Card 1: Domande
+doc.setFillColor(252, 249, 255);
+doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.setLineWidth(1);
+doc.roundedRect(startX, y, cardWidth, cardHeight, 4, 4, 'FD');
+
+doc.setFont("helvetica", "bold");
+doc.setFontSize(28);
+doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+const questNumStr = String(questions.length);
+const questNumW = doc.getTextWidth(questNumStr);
+doc.text(questNumStr, startX + (cardWidth - questNumW) / 2, y + 18);
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(8);
+doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+const questLabel = "DOMANDE";
+const questLabelW = doc.getTextWidth(questLabel);
+doc.text(questLabel, startX + (cardWidth - questLabelW) / 2, y + 28);
+
+// Card 2: Argomenti
+const card2X = startX + cardWidth + cardGap;
+doc.setFillColor(249, 255, 252);
+doc.setDrawColor(colors.success[0], colors.success[1], colors.success[2]);
+doc.roundedRect(card2X, y, cardWidth, cardHeight, 4, 4, 'FD');
+
+doc.setFont("helvetica", "bold");
+doc.setFontSize(28);
+doc.setTextColor(colors.success[0], colors.success[1], colors.success[2]);
+const topicsNumStr = String(uniqueTopics.length);
+const topicsNumW = doc.getTextWidth(topicsNumStr);
+doc.text(topicsNumStr, card2X + (cardWidth - topicsNumW) / 2, y + 18);
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(8);
+doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+const topicsLabel = "ARGOMENTI";
+const topicsLabelW = doc.getTextWidth(topicsLabel);
+doc.text(topicsLabel, card2X + (cardWidth - topicsLabelW) / 2, y + 28);
+
+// Card 3: Data
+const card3X = card2X + cardWidth + cardGap;
+doc.setFillColor(255, 250, 245);
+doc.setDrawColor(colors.warning[0], colors.warning[1], colors.warning[2]);
+doc.roundedRect(card3X, y, cardWidth, cardHeight, 4, 4, 'FD');
+
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.setTextColor(colors.warning[0], colors.warning[1], colors.warning[2]);
+const dateStr = today.toUpperCase();
+const dateW = doc.getTextWidth(dateStr);
+doc.text(dateStr, card3X + (cardWidth - dateW) / 2, y + 16);
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(8);
+doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+const dateLabel = "GENERATO";
+const dateLabelW = doc.getTextWidth(dateLabel);
+doc.text(dateLabel, card3X + (cardWidth - dateLabelW) / 2, y + 28);
+
+y += cardHeight + 10;
+
+// Indice elegante
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+doc.text("INDICE", margin + 8, y);
+
+y += 8;
+
+if (exportOptions.includeQuestions) {
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin + 8, y, contentWidth - 16, 14, 4, 4, 'FD');
+  
+  // Numero sezione in cerchio
+  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.circle(margin + 16, y + 7, 4, 'F');
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text("1", margin + 15, y + 8);
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+  doc.text("Sezione Domande", margin + 25, y + 8.5);
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+  doc.text("PAG. 2", pageWidth - margin - 24, y + 8);
+  
+  y += 16;
+}
+
+if (exportOptions.includeAnswers) {
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(colors.success[0], colors.success[1], colors.success[2]);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin + 8, y, contentWidth - 16, 14, 4, 4, 'FD');
+  
+  // Numero sezione in cerchio
+  doc.setFillColor(colors.success[0], colors.success[1], colors.success[2]);
+  doc.circle(margin + 16, y + 7, 4, 'F');
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text("2", margin + 15, y + 8);
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+  doc.text("Soluzioni e Spiegazioni", margin + 25, y + 8.5);
+  
+  const solutionsPage = 2 + Math.ceil(questions.length / 2);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+  doc.text(`PAG. ${solutionsPage}`, pageWidth - margin - 24, y + 8);
+}
+
+// Footer elegante con QR
+y = pageHeight - 35;
+doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+doc.setLineWidth(0.3);
+doc.line(margin + 15, y, pageWidth - margin - 15, y);
+
+y += 1;
+
+// QR Code simulato (box con pattern)
+const qrSize = 20;
+const qrX = (pageWidth - qrSize) / 2;
+doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+doc.setLineWidth(1);
+doc.rect(qrX, y, qrSize, qrSize);
+
+// Pattern QR simulato
+doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+for (let row = 0; row < 4; row++) {
+  for (let col = 0; col < 4; col++) {
+    if ((row + col) % 2 === 0) {
+      doc.rect(qrX + 2 + (col * 4), y + 2 + (row * 4), 3, 3, 'F');
+    }
+  }
+}
+
+y += qrSize + 3;
+
+doc.setFont("helvetica", "normal");
+doc.setFontSize(7);
+doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+const footerText = "Scansiona per accedere al quiz online";
+const footerW = doc.getTextWidth(footerText);
+doc.text(footerText, (pageWidth - footerW) / 2, y);
+
+setExportProgress(30);
+
+    // ============================================
+    // SEZIONE I: DOMANDE (Layout identico allo Screen)
+    // ============================================
+    if (exportOptions.includeQuestions) {
+      doc.addPage();
+      pageNum++;
+      addBranding();
+      y = 20;
+
+      // Header Viola come da screen
+      doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+      doc.roundedRect(margin, y, contentWidth, 14, 3, 3, 'F');
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      const questionText = doc.splitTextToSize(t('pdfQuestionPrefix') + (index + 1) + ': ' + q.question_text, pageWidth - margin * 2);
-      doc.text(questionText, margin, y);
-      y += (questionText.length * 5) + 2;
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Sezione I: Domande", margin + 6, y + 9);
+      y += 16;
 
-      // Stampa la Risposta Esatta (Verde, senza simboli speciali per non rompere i margini)
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(16, 185, 129); // Verde
-      const splitAnswer = doc.splitTextToSize(t('pdfCorrectPrefix') + q.correct_answer, pageWidth - margin * 2 - 5);
-      doc.text(splitAnswer, margin + 5, y);
-      y += (splitAnswer.length * 5) + 2;
+      let currentTopic = '';
+      let justChangedPage = false;
 
-      // Stampa la Spiegazione (Grigio)
-      if (q.explanation) {
-        doc.setFont("helvetica", "normal");
+      questions.forEach((q, index) => {
+        const qTopicStr = q.topic || '';
+        const isNewTopic = qTopicStr && qTopicStr !== currentTopic;
+
+        // 1. IMPOSTO I FONT PRIMA DI CALCOLARE (Il segreto per non far sbordare il testo)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        const splitQ = doc.splitTextToSize(q.question_text, contentWidth - 12);
+
+        let optionsHeight = 0;
+        const parsedOptions = q.options.map(opt => {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          const lines = doc.splitTextToSize(opt, contentWidth - 22);
+          optionsHeight += (lines.length * 4.5) + 3; // Ridotto lo spazio a +3
+          return lines;
+        });
+
+        const topicHeight = isNewTopic ? 10 : 0; // Topic height ridotto
+        const exactHeight = topicHeight + (splitQ.length * 5) + optionsHeight + 4; // Padding finale ridotto
+
+        // Salto pagina se non ci sta
+        if (y + exactHeight > pageHeight - 20) {
+          doc.addPage();
+          pageNum++;
+          addBranding();
+          y = 20;
+          justChangedPage = true;
+        }
+
+        // Topic Banner (Grigio chiaro come da screen)
+        if (isNewTopic) {
+          currentTopic = qTopicStr;
+          doc.setFillColor(colors.topicBg[0], colors.topicBg[1], colors.topicBg[2]);
+          doc.rect(margin, y, contentWidth, 6, 'F');
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.5);
+          doc.setTextColor(150, 150, 150);
+          doc.text(currentTopic.toUpperCase(), margin + 2, y + 4.5);
+          y += 6;
+          justChangedPage = false;
+        }
+
+        // Numero Domanda (Quadrato viola arrotondato)
+        doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        doc.roundedRect(margin, y, 7, 7, 1.5, 1.5, 'F');
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
-        doc.setTextColor(100, 116, 139); // Grigio
-        const splitExp = doc.splitTextToSize(t('pdfExplanationPrefix') + q.explanation, pageWidth - margin * 2 - 5);
-        doc.text(splitExp, margin + 5, y);
-        y += (splitExp.length * 5) + 8; // Spazio abbondante prima della prossima domanda
-      } else {
-        y += 8;
-      }
-    });
+        doc.setTextColor(255, 255, 255);
+        // Centratura numero
+        const numStr = String(index + 1);
+        const numOffset = numStr.length > 1 ? 1 : 2.5;
+        doc.text(numStr, margin + numOffset, y + 5);
 
-    // Salva il file
-    // --- SALVATAGGIO (Versione Premium Mobile-First) ---
-    const rawName = selectedFile?.filename || t('pdfDefaultDocName');
-    const cleanName = rawName.replace(/\.[^/.]+$/, "").replace(/[\\/:*?"<>|]/g, "").trim();
-    const fileName = `${cleanName} - ${t('pdfFileNameSuffix')}`;
+        // Testo Domanda
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10.5);
+        doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+        doc.text(splitQ, margin + 10, y + 4.5);
+        y += (splitQ.length * 5) + 1;
 
-    // 1. Trasformiamo il PDF in dati grezzi (Blob) invece di forzare il download
+        // Opzioni stile Web
+        parsedOptions.forEach((optLines, optIdx) => {
+          const letter = String.fromCharCode(65 + optIdx);
+
+          // Lettera viola dentro cerchietto leggero
+          doc.setDrawColor(210, 210, 210);
+          doc.setLineWidth(0.4);
+          doc.circle(margin + 12.5, y + 2, 2.5, 'S');
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.5);
+          doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+          const letterWidth = doc.getTextWidth(letter);
+          doc.text(letter, margin + 12.5 - (letterWidth / 2), y + 3.2);
+
+          // Testo Opzione
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+          doc.text(optLines, margin + 18, y + 3.2);
+
+          y += (optLines.length * 4.5) + 1;
+        });
+
+        y += 1; // Spazio extra tra le domande
+      });
+      setExportProgress(70);
+    }
+
+    // ============================================
+    // SEZIONE II: SOLUZIONI (Fix Sbavature Text)
+    // ============================================
+    if (exportOptions.includeAnswers) {
+      doc.addPage();
+      pageNum++;
+      addBranding();
+      y = 20;
+
+      doc.setFillColor(colors.success[0], colors.success[1], colors.success[2]);
+      doc.roundedRect(margin, y, contentWidth, 14, 3, 3, 'F');
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Sezione II: Soluzioni", margin + 6, y + 9);
+      y += 16;
+
+      questions.forEach((q, index) => {
+        // FIX CRITICO: setFont PRIMA di calcolare le linee
+        // 1. Rimuoviamo il taglio (substring), la domanda va intera
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        const qLines = doc.splitTextToSize(q.question_text, contentWidth - 12);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        const ansLines = doc.splitTextToSize(q.correct_answer, contentWidth - 18);
+
+        let expLines: string[] = [];
+        if (exportOptions.includeExplanations && q.explanation) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          expLines = doc.splitTextToSize(q.explanation, contentWidth - 12);
+        }
+
+        let boxContentHeight = 6; // Padding base ridotto
+        boxContentHeight += (qLines.length * 4.5) + 1;
+        boxContentHeight += (ansLines.length * 5) + 1;
+        if (expLines.length > 0) boxContentHeight += (expLines.length * 4.5) + 1;
+        // Tolto l'extra spazio per q.topic perché ora va di fianco al titolo!
+
+        if (y + boxContentHeight > pageHeight - 20) {
+          doc.addPage();
+          pageNum++;
+          addBranding();
+          y = 20;
+        }
+
+        doc.setFillColor(252, 253, 255);
+        doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(margin, y, contentWidth, boxContentHeight, 3, 3, 'FD');
+
+        let innerY = y + 6;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+        const titleStr = `DOMANDA ${index + 1}`;
+        doc.text(titleStr, margin + 5, innerY);
+
+        if (q.topic) {
+          const titleWidth = doc.getTextWidth(titleStr);
+          doc.setFillColor(243, 244, 246);
+          doc.roundedRect(margin + 5 + titleWidth + 4, innerY - 4, doc.getTextWidth(q.topic) + 4, 5, 1, 1, 'F');
+          doc.setFontSize(6.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(q.topic.toUpperCase(), margin + 5 + titleWidth + 6, innerY - 0.5);
+        }
+
+        innerY += 4; // Salto riga ridotto
+
+        // Testo della domanda (ora intero)
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+        doc.text(qLines, margin + 5, innerY);
+        innerY += (qLines.length * 4.5) + 1;
+
+        // Risposta e icona
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(colors.success[0], colors.success[1], colors.success[2]);
+        doc.text("✓", margin + 4, innerY);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+        doc.text(ansLines, margin + 10, innerY);
+        innerY += (ansLines.length * 5) + 0;
+
+        // Spiegazione (opzionale)
+        if (expLines.length > 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          doc.setTextColor(colors.textLight[0], colors.textLight[1], colors.textLight[2]);
+          doc.text(expLines, margin + 5, innerY);
+        }
+        y += boxContentHeight + 1; // Spazio extra tra box ridotto
+      });
+      setExportProgress(90);
+    }
+
+    // ============================================
+    // SALVATAGGIO
+    // ============================================
+    const rawName = selectedFile?.filename || 'Quiz';
+    const cleanName = rawName.replace(/\.[^/.]+$/, "").replace(/[\\/:*?"<>|]/g, "");
+    const fileName = `${cleanName} - Uneedes.pdf`;
+
     const pdfBlob = doc.output('blob');
-
-    // 2. Capiamo se l'utente è su uno smartphone/tablet
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    setExportProgress(100);
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     if (isMobile) {
       try {
         const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-        // Controlliamo se il telefono supporta il menu di condivisione nativo
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: fileName,
-          });
+          await navigator.share({ files: [file], title: fileName });
         } else {
-          // Fallback per telefoni più vecchi: apre il PDF nel lettore nativo del telefono
           const pdfUrl = URL.createObjectURL(pdfBlob);
           window.open(pdfUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(pdfUrl), 5000);
         }
       } catch (error: any) {
-        // Se l'utente chiude la tendina o c'è un errore, tentiamo il download classico
-        if (error.name === 'AbortError' || error.message.includes('abort') || error.message.includes('cancel')) {
-          console.log("Condivisione annullata dall'utente.");
-          return; // Usciamo silenziosamente, la pagina rimane perfetta.
+        if (error.name === 'AbortError') {
+          setShowExportModal(false);
+          return;
         }
-        // Se è un VERO errore di sistema, NON usiamo doc.save() su mobile! 
-        // Proviamo ad aprirlo in un'altra scheda per non rompere la pagina corrente.
-        console.error("Errore imprevisto durante la condivisione:", error);
         const pdfUrl = URL.createObjectURL(pdfBlob);
         window.open(pdfUrl, '_blank');
       }
     } else {
-      // 💻 Su PC usiamo il salvataggio classico
       doc.save(fileName);
     }
+
+    setShowExportModal(false);
+    setExportProgress(0);
   };
 
   // 1. Check Auth
@@ -985,11 +1416,11 @@ export default function DashboardPage() {
                         // Determina colori e stati
                         const isDanger = entry.score < 50;
                         const isSuccess = entry.score >= 80;
-                        
+
                         const colorClass = isDanger
                           ? "from-red-600 to-rose-400"
                           : isSuccess
-                            ? "from-violet-600 to-fuchsia-500" 
+                            ? "from-violet-600 to-fuchsia-500"
                             : "from-amber-500 to-orange-400";
 
                         const textClass = isDanger ? "text-red-400" : isSuccess ? "text-fuchsia-300" : "text-amber-400";
@@ -1225,6 +1656,141 @@ export default function DashboardPage() {
         >
           <ChevronUp className="w-5 h-5 text-white" />
         </button>
+      )}
+      {/* MODAL EXPORT PDF - Desktop Modal / Mobile Bottom Sheet */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowExportModal(false)}
+          />
+
+          {/* Modal/Bottom Sheet */}
+          <div className={`relative w-full md:w-auto md:min-w-[500px] bg-slate-900/95 backdrop-blur-xl border border-white/10 overflow-hidden animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95 duration-300 ${exportProgress > 0 ? '' : 'md:rounded-3xl'
+            } rounded-t-3xl md:rounded-3xl shadow-2xl`}>
+
+            {/* Header */}
+            <div className="p-6 border-b border-white/5">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">📄 Esporta Quiz</h3>
+                  <p className="text-sm text-slate-400">
+                    {selectedFile?.filename.replace(/\.pdf$/i, '')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Mini preview info */}
+              <div className="flex items-center gap-4 text-xs text-slate-400">
+                <span>📊 {questions.length} domande</span>
+                <span>•</span>
+                <span>📑 ~{Math.ceil(questions.length / 2) + 2} pagine</span>
+                <span>•</span>
+                <span>📄 A4</span>
+              </div>
+            </div>
+
+            {/* Options */}
+            {exportProgress === 0 && (
+              <div className="p-6 space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-300 mb-3">Personalizza contenuto:</p>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={exportOptions.includeQuestions}
+                        onChange={(e) => setExportOptions(prev => ({ ...prev, includeQuestions: e.target.checked }))}
+                        className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-violet-600 checked:border-violet-600 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">Domande con spazi</p>
+                        <p className="text-xs text-slate-400">Per esercitarsi o stampare</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={exportOptions.includeAnswers}
+                        onChange={(e) => setExportOptions(prev => ({ ...prev, includeAnswers: e.target.checked }))}
+                        className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-violet-600 checked:border-violet-600 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">Risposte corrette</p>
+                        <p className="text-xs text-slate-400">Sezione con tutte le soluzioni</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={exportOptions.includeExplanations}
+                        onChange={(e) => setExportOptions(prev => ({ ...prev, includeExplanations: e.target.checked }))}
+                        disabled={!exportOptions.includeAnswers}
+                        className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 checked:bg-violet-600 checked:border-violet-600 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">Spiegazioni dettagliate</p>
+                        <p className="text-xs text-slate-400">Approfondimenti per ogni risposta</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress Bar */}
+            {exportProgress > 0 && (
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+                  <p className="text-sm font-medium text-slate-300">
+                    {exportProgress < 100 ? 'Generazione PDF in corso...' : 'PDF generato!'}
+                  </p>
+                </div>
+
+                <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600 to-purple-600 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${exportProgress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 mt-2 text-right">{exportProgress}%</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            {exportProgress === 0 && (
+              <div className="p-6 pt-0 flex gap-3">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={generatePDFEnterprise}
+                  disabled={!exportOptions.includeQuestions && !exportOptions.includeAnswers}
+                  className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-violet-900/30"
+                >
+                  Genera PDF ✨
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

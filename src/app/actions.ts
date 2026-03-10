@@ -54,7 +54,7 @@ export async function generateQuizAction(formData: FormData) {
 
     // 2) TRUNCATE DINAMICO INTELLIGENTE (risparmio token)
     const MAX_CHARS = 30000; // ~10 pagine accademiche
-    
+
     let truncatedText: string;
     if (fullText.length <= MAX_CHARS) {
       // PDF corto: usa tutto (risparmio automatico!)
@@ -66,47 +66,47 @@ export async function generateQuizAction(formData: FormData) {
       truncatedText = mainChunk + "\n\n[...]\n\n" + endChunk;
     }
 
-    console.log(`📄 Testo: ${fullText.length} char → Usati: ${truncatedText.length} char (${Math.round(truncatedText.length/fullText.length*100)}%)`);
+    console.log(`📄 Testo: ${fullText.length} char → Usati: ${truncatedText.length} char (${Math.round(truncatedText.length / fullText.length * 100)}%)`);
 
 
     // 3) Chiama Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite", });
 
-    const prompt = `
-Generate 10 multiple-choice questions from the text below.
+    const prompt = `You are a quiz generator. Generate exactly 10 multiple-choice questions from the text below.
 
-CRITICAL RULES:
-1. ALL 4 options MUST be 15-25 words each (equal length to prevent answer leaking)
-2. Randomize correct answer position (A/B/C/D - not always first)
-3. Wrong answers must be plausible but clearly distinguishable
-4. Return ONLY valid JSON array (no markdown, no explanations)
+STEP-BY-STEP PROCESS (follow this order for EACH question):
+1. Identify a concept to test
+2. Write the correct answer (15-20 words)
+3. Write 3 distractors that are IDENTICAL in length (±1 word) to the correct answer
+4. Roll a virtual die → assign correct answer to position A, B, C, or D randomly
+   - Distribute across the 10 questions: ~2-3 per position. Never use same position 3 times in a row.
+5. Assemble the options array starting from position A
+
+STRICT RULES:
+- Every option: 15-20 words. COUNT the words. If any option is outside range, rewrite it.
+- Distractors must sound equally authoritative and specific as the correct answer
+- Distractors must be plausible but factually wrong (no obvious nonsense)
+- No hedging words ("might", "could", "perhaps") only in wrong answers
+- "answer" field = exact copy of the correct option string
+
+OUTPUT: ONLY a valid JSON array, no markdown, no text before or after.
 
 JSON SCHEMA:
 [{
-  "question": "Clear, specific question text",
-  "options": ["15-25 word option", "15-25 word option", "15-25 word option", "15-25 word option"],
-  "answer": "Exact text match of the correct option",
-  "tip": "Brief explanation (max 35 words)",
-  "topic": "Main subject or concept"
+  "question": "Specific question text",
+  "options": ["option A", "option B", "option C", "option D"],
+  "answer": "exact copy of correct option",
+  "tip": "Explanation max 30 words",
+  "topic": "Concept name"
 }]
 
-EXAMPLE (follow this format):
-{
-  "question": "Secondo il Modello dei Due Fattori di Herzberg, quali sono i fattori igienici?",
-  "options": [
-    "Fattori legati alla crescita personale, al riconoscimento professionale e alle opportunità di sviluppo nella carriera lavorativa",
-    "Fattori legati alle condizioni di lavoro, alla retribuzione economica e alla sicurezza dell'impiego nel contesto organizzativo",
-    "Fattori legati esclusivamente ai rapporti interpersonali con colleghi, superiori diretti e al clima organizzativo generale dell'azienda",
-    "Fattori legati unicamente alle opportunità concrete di avanzamento, promozione verticale e progressione nella struttura gerarchica aziendale"
-  ],
-  "answer": "Fattori legati alle condizioni di lavoro, alla retribuzione economica e alla sicurezza dell'impiego nel contesto organizzativo",
-  "tip": "Herzberg distingue fattori igienici (prevengono insoddisfazione) da motivanti (creano soddisfazione attiva).",
-  "topic": "Teorie della Motivazione"
-}
+SELF-CHECK before outputting: verify that
+- all 4 options of each question have 15-20 words
+- correct answers are distributed across A/B/C/D positions
+- no 3 consecutive questions share the same correct position
 
-TEXT TO ANALYZE:
-${truncatedText}
-`;
+TEXT:
+${truncatedText}`;
 
     // 5) GENERAZIONE CON PARAMETRI OTTIMALI
     const result = await model.generateContent({
@@ -123,7 +123,7 @@ ${truncatedText}
 
     // 6) PARSING JSON (già pulito grazie a responseMimeType)
     let jsonString = response.text().trim();
-    
+
     // Fallback cleaning se necessario
     jsonString = jsonString
       .replace(/```json/gi, "")
@@ -160,69 +160,69 @@ ${truncatedText}
       return { success: true, quiz, saved: false };
     }
 
-   // 7) SALVATAGGIO DB (solo utenti loggati)
-   const { data: fileRow, error: fileError } = await supabaseAdmin
-   .from("files")
-   .insert({
-     user_id: userId,
-     filename: file.name,
-     file_size: file.size,
-     extracted_text: truncatedText,
-     processed: true,
-   })
-   .select("id")
-   .single();
+    // 7) SALVATAGGIO DB (solo utenti loggati)
+    const { data: fileRow, error: fileError } = await supabaseAdmin
+      .from("files")
+      .insert({
+        user_id: userId,
+        filename: file.name,
+        file_size: file.size,
+        extracted_text: truncatedText,
+        processed: true,
+      })
+      .select("id")
+      .single();
 
- if (fileError) {
-   console.error("❌ Errore salvataggio file:", fileError);
-   return { success: true, quiz, saved: false };
- }
+    if (fileError) {
+      console.error("❌ Errore salvataggio file:", fileError);
+      return { success: true, quiz, saved: false };
+    }
 
- // 8) SALVATAGGIO DOMANDE (senza question_type)
- const quizRows = (quiz as any[]).map((q) => ({
-   file_id: fileRow.id,
-   user_id: userId,
-   question_text: q.question,
-   options: q.options,
-   correct_answer: q.answer,
-   explanation: q.tip,
-   topic: q.topic,
- }));
+    // 8) SALVATAGGIO DOMANDE (senza question_type)
+    const quizRows = (quiz as any[]).map((q) => ({
+      file_id: fileRow.id,
+      user_id: userId,
+      question_text: q.question,
+      options: q.options,
+      correct_answer: q.answer,
+      explanation: q.tip,
+      topic: q.topic,
+    }));
 
- const { data: quizData, error: quizError } = await supabaseAdmin
-   .from("quiz_questions")
-   .insert(quizRows)
-   .select();
+    const { data: quizData, error: quizError } = await supabaseAdmin
+      .from("quiz_questions")
+      .insert(quizRows)
+      .select();
 
- if (quizError) {
-   console.error("❌ Errore salvataggio domande:", quizError);
-   return { success: true, quiz, saved: false };
- }
+    if (quizError) {
+      console.error("❌ Errore salvataggio domande:", quizError);
+      return { success: true, quiz, saved: false };
+    }
 
- // 9) AGGIORNAMENTO CONTATORI
- try {
-   await incrementLimits(userId, 1, 10);
- } catch (limitError) {
-   console.error("⚠️ Errore aggiornamento limiti:", limitError);
- }
+    // 9) AGGIORNAMENTO CONTATORI
+    try {
+      await incrementLimits(userId, 1, 10);
+    } catch (limitError) {
+      console.error("⚠️ Errore aggiornamento limiti:", limitError);
+    }
 
- // 10) RITORNA DOMANDE CON ID REALI (per salvataggio risposte)
- const quizWithIds = quizData.map(q => ({
-   id: q.id,
-   question: q.question_text,
-   options: q.options,
-   answer: q.correct_answer,
-   tip: q.explanation,
-   topic: q.topic
- }));
+    // 10) RITORNA DOMANDE CON ID REALI (per salvataggio risposte)
+    const quizWithIds = quizData.map(q => ({
+      id: q.id,
+      question: q.question_text,
+      options: q.options,
+      answer: q.correct_answer,
+      tip: q.explanation,
+      topic: q.topic
+    }));
 
- return { success: true, quiz: quizWithIds, saved: true, fileId: fileRow.id };
+    return { success: true, quiz: quizWithIds, saved: true, fileId: fileRow.id };
 
-} catch (error: any) {
- console.error("❌ Errore generale:", error);
- return { error: "Errore durante l'elaborazione del file." };
+  } catch (error: any) {
+    console.error("❌ Errore generale:", error);
+    return { error: "Errore durante l'elaborazione del file." };
+  }
 }
-} 
 
 
 /**
@@ -262,26 +262,47 @@ export async function generateMoreQuestionsAction(fileId: string, userId: string
     // 3. PROMPT OTTIMIZZATO (stesso stile della funzione principale)
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-    const prompt = `Generate 10 NEW multiple-choice questions from the text below.
+    // Prepara solo i titoli delle domande esistenti, non i full object → risparmio token
+    const existingTitles = oldQuestions
+      ?.slice(0, 20)
+      .map((q, i) => `${i + 1}. ${q.question_text}`)
+      .join('\n') || "None yet";
 
-CRITICAL RULES:
-1. ALL 4 options MUST be 15-25 words each (equal length)
-2. Randomize correct answer position (A/B/C/D)
-3. Questions must be DIFFERENT from existing ones (see below)
-4. Cover NEW concepts not already tested
-5. Return ONLY valid JSON array
+    const prompt = `You are a quiz generator. Generate exactly 10 NEW multiple-choice questions from the text below.
 
-EXISTING QUESTIONS TO AVOID:
-${existingQuestions.slice(0, 1500)}
+ALREADY TESTED (do NOT repeat these topics or rephrase these questions):
+${existingTitles}
+
+STEP-BY-STEP PROCESS (follow this order for EACH question):
+1. Pick a concept NOT covered in the list above
+2. Write the correct answer (15-20 words)
+3. Write 3 distractors IDENTICAL in length (±1 word) to the correct answer
+4. Randomly assign correct answer to position A/B/C/D
+ - Across 10 questions aim for ~2-3 per position. Never repeat same position 3 times in a row.
+5. Assemble options array
+
+STRICT RULES:
+- Every option: 15-20 words. COUNT the words. Rewrite if outside range.
+- Distractors must sound equally authoritative as the correct answer
+- Distractors must be plausible but factually wrong
+- No hedging language ("might", "perhaps") only in wrong answers
+- "answer" field = exact string copy of correct option
+
+OUTPUT: ONLY valid JSON array, no markdown, no extra text.
 
 JSON SCHEMA:
 [{
-  "question": "New question about untested concept",
-  "options": ["15-25 word option", "15-25 word option", "15-25 word option", "15-25 word option"],
-  "answer": "Exact match of correct option",
-  "tip": "Brief explanation (max 35 words)",
-  "topic": "Subject or concept"
+"question": "New question on untested concept",
+"options": ["option A", "option B", "option C", "option D"],
+"answer": "exact copy of correct option",
+"tip": "Explanation max 30 words",
+"topic": "Concept name"
 }]
+
+SELF-CHECK before outputting:
+- All options 15-20 words ✓
+- Correct answers spread across A/B/C/D ✓
+- No topic from the existing list ✓
 
 TEXT:
 ${fileRow.extracted_text}`;
