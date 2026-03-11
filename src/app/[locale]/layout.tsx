@@ -34,7 +34,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale}>
       <head>
-      <!-- Start cookieyes banner --> <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/a3b199f01ae02c96d7fee8220275cf40/script.js"></script> <!-- End cookieyes banner -->
+       <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/a3b199f01ae02c96d7fee8220275cf40/script.js"></script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/*  Aggiungi locale={locale}  */}
