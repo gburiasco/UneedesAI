@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { Loader2, Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Update Password',
+  robots: {
+    index: false,  // ❌ NON indicizzare
+    follow: false,
+    noarchive: true
+  }
+};
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -14,7 +24,7 @@ export default function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
+  
   async function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);

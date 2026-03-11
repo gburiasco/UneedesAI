@@ -193,6 +193,16 @@
         "hideTip": "Erklärung verbergen",
         "explanation": "Erklärung"
     },
+    "Metadata": {
+        "title": "Uneedes - KI-Quiz aus PDF | Kostenloses intelligentes Lernen",
+        "description": "Verwandeln Sie Ihre PDFs in interaktive Quiz mit KI. Kostenlos, schnell, mehrsprachig. Perfekt für Universitätsstudenten und Berufstätige.",
+        "dashboardTitle": "Dashboard",
+        "dashboardDescription": "Verwalten Sie Ihre KI-Quiz, sehen Sie Statistiken und Lernfortschritt.",
+        "privacyTitle": "Datenschutzerklärung",
+        "privacyDescription": "Datenschutzerklärung und Verwaltung personenbezogener Daten von Uneedes.",
+        "termsTitle": "Nutzungsbedingungen",
+        "termsDescription": "Allgemeine Geschäftsbedingungen für die Nutzung des Uneedes-Dienstes."
+    },
     "footer": {
         "tagline": "Verwandeln Sie Ihre PDFs in interaktive Quiz mit KI. Intelligentes Lernen für moderne Studenten.",
         "product": "Produkt",

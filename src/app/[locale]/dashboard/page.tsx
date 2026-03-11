@@ -9,6 +9,7 @@ import { generateMoreQuestionsAction, saveUserAnswerAction, getUserAnswersAction
 import { PaywallModal } from "../../../components/paywall-modal";
 import { X, Eraser, Download, Loader2, FileText, ChevronRight, ChevronDown, ChevronUp, ArrowLeft, CheckCircle2, XCircle, AlertCircle, Plus, Lightbulb, Trophy, Target, PieChart, Trash2, RotateCcw, Flame, Sparkles, BarChart3 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { Metadata } from 'next'
 
 type FileRow = {
   id: string;
@@ -27,6 +28,29 @@ type QuizQuestionRow = {
   topic: string | null;
   created_at?: string;
 };
+
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ locale: string }> 
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await useTranslations('Metadata');
+  
+  return {
+    title: t('dashboardTitle'),
+    description: t('dashboardDescription'),
+    alternates: {
+      canonical: `https://uneedes-ai.vercel.app/${locale}/dashboard`
+    },
+    robots: {
+      index: false,  
+      follow: false,
+      noarchive: true,
+      nosnippet: true
+    }
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();

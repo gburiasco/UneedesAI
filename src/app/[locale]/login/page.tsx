@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
 import { Loader2, Mail, Lock, LogIn, Chrome, CheckCircle2, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Login',
+  robots: {
+    index: false, 
+    follow: false
+  }
+};
 
 export default function LoginPage() {
   const router = useRouter();

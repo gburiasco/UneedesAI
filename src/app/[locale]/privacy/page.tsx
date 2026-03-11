@@ -1,3 +1,28 @@
+import type { Metadata } from 'next'
+
+import { useTranslations } from 'next-intl';
+
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ locale: string }> 
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await useTranslations('Metadata');
+  
+  return {
+    title: t('privacyTitle'),
+    description: t('privacyDescription'),
+    alternates: {
+      canonical: `https://uneedes-ai.vercel.app/${locale}/privacy`
+    },
+    robots: {
+      index: true,  // ✅ Indicizza
+      follow: true
+    }
+  };
+}
+
 export default function PrivacyPage() {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 py-24 px-4">

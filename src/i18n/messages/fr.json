@@ -193,6 +193,16 @@
         "hideTip": "Masquer l'explication",
         "explanation": "Explication"
     },
+    "Metadata": {
+        "title": "Uneedes - Quiz IA depuis PDF | Étude Intelligente Gratuite",
+        "description": "Transformez vos PDFs en quiz interactifs avec l'IA. Gratuit, rapide, multilingue. Parfait pour les étudiants universitaires et les professionnels.",
+        "dashboardTitle": "Tableau de bord",
+        "dashboardDescription": "Gérez vos quiz IA, visualisez les statistiques et les progrès d'étude.",
+        "privacyTitle": "Politique de Confidentialité",
+        "privacyDescription": "Politique de confidentialité et gestion des données personnelles de Uneedes.",
+        "termsTitle": "Conditions d'Utilisation",
+        "termsDescription": "Termes et conditions d'utilisation du service Uneedes."
+    },
     "footer": {
         "tagline": "Transformez vos PDFs en quiz interactifs avec l'IA. Étude intelligente pour étudiants modernes.",
         "product": "Produit",
