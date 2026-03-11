@@ -192,5 +192,20 @@
         "showTip": "Afficher l'explication",
         "hideTip": "Masquer l'explication",
         "explanation": "Explication"
+    },
+    "footer": {
+        "tagline": "Transformez vos PDFs en quiz interactifs avec l'IA. Étude intelligente pour étudiants modernes.",
+        "product": "Produit",
+        "home": "Accueil",
+        "pricing": "Tarifs",
+        "dashboard": "Tableau de bord",
+        "legal": "Légal",
+        "privacy": "Politique de Confidentialité",
+        "terms": "Conditions d'Utilisation",
+        "cookieSettings": "Paramètres des Cookies",
+        "support": "Support",
+        "contact": "Nous Contacter",
+        "community": "Communauté Discord",
+        "rights": "Tous droits réservés."
     }
 }

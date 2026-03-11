@@ -192,5 +192,20 @@
         "showTip": "Mostrar explicación",
         "hideTip": "Ocultar explicación",
         "explanation": "Explicación"
+    },
+    "footer": {
+        "tagline": "Transforma tus PDFs en cuestionarios interactivos con IA. Estudio inteligente para estudiantes modernos.",
+        "product": "Producto",
+        "home": "Inicio",
+        "pricing": "Precios",
+        "dashboard": "Panel",
+        "legal": "Legal",
+        "privacy": "Política de Privacidad",
+        "terms": "Términos de Servicio",
+        "cookieSettings": "Configuración de Cookies",
+        "support": "Soporte",
+        "contact": "Contáctanos",
+        "community": "Comunidad Discord",
+        "rights": "Todos los derechos reservados."
     }
 }

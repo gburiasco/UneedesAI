@@ -192,5 +192,20 @@
         "showTip": "Show explanation",
         "hideTip": "Hide explanation",
         "explanation": "Explanation"
+    },
+    "footer": {
+        "tagline": "Transform your PDFs into interactive quizzes with AI. Smart studying for modern students.",
+        "product": "Product",
+        "home": "Home",
+        "pricing": "Pricing",
+        "dashboard": "Dashboard",
+        "legal": "Legal",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "cookieSettings": "Cookie Settings",
+        "support": "Support",
+        "contact": "Contact Us",
+        "community": "Discord Community",
+        "rights": "All rights reserved."
     }
 }

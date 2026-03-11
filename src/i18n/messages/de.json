@@ -192,5 +192,20 @@
         "showTip": "Erklärung anzeigen",
         "hideTip": "Erklärung verbergen",
         "explanation": "Erklärung"
+    },
+    "footer": {
+        "tagline": "Verwandeln Sie Ihre PDFs in interaktive Quiz mit KI. Intelligentes Lernen für moderne Studenten.",
+        "product": "Produkt",
+        "home": "Startseite",
+        "pricing": "Preise",
+        "dashboard": "Dashboard",
+        "legal": "Rechtliches",
+        "privacy": "Datenschutzerklärung",
+        "terms": "Nutzungsbedingungen",
+        "cookieSettings": "Cookie-Einstellungen",
+        "support": "Support",
+        "contact": "Kontakt",
+        "community": "Discord-Community",
+        "rights": "Alle Rechte vorbehalten."
     }
 }

@@ -192,5 +192,20 @@
         "showTip": "Mostra spiegazione",
         "hideTip": "Nascondi spiegazione",
         "explanation": "Spiegazione"
+    },
+    "footer": {
+        "tagline": "Trasforma i tuoi PDF in quiz interattivi con AI. Studio intelligente per studenti moderni.",
+        "product": "Prodotto",
+        "home": "Home",
+        "pricing": "Prezzi",
+        "dashboard": "Dashboard",
+        "legal": "Legale",
+        "privacy": "Privacy Policy",
+        "terms": "Termini di Servizio",
+        "cookieSettings": "Impostazioni Cookie",
+        "support": "Supporto",
+        "contact": "Contattaci",
+        "community": "Community Discord",
+        "rights": "Tutti i diritti riservati."
     }
 }
