@@ -6,7 +6,6 @@ import { supabase } from "../../../lib/supabase";
 import { Loader2, Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-
 export default function UpdatePasswordPage() {
   const router = useRouter();
   const t = useTranslations('updatePassword');
