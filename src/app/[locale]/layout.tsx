@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import {NextIntlClientProvider} from 'next-intl';
-import {getMessages} from 'next-intl/server';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { Footer } from '../../components/footer';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,20 +27,24 @@ export default async function LocaleLayout({
   params
 }: {
   children: React.ReactNode;
-  params: Promise<{locale: string}>;
+  params: Promise<{ locale: string }>;
 }) {
-  const {locale} = await params;
+  const { locale } = await params;
   const messages = await getMessages();
 
   return (
     <html lang={locale}>
       <head>
-       <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/a3b199f01ae02c96d7fee8220275cf40/script.js"/>
+        <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/a3b199f01ae02c96d7fee8220275cf40/script.js" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/*  Aggiungi locale={locale}  */}
         <NextIntlClientProvider messages={messages} locale={locale}>
-          {children}
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </NextIntlClientProvider>
         <SpeedInsights />
         <Analytics />
@@ -50,10 +55,10 @@ export default async function LocaleLayout({
 
 export async function generateStaticParams() {
   return [
-    {locale: 'it'},
-    {locale: 'en'},
-    {locale: 'es'},
-    {locale: 'fr'},
-    {locale: 'de'}
+    { locale: 'it' },
+    { locale: 'en' },
+    { locale: 'es' },
+    { locale: 'fr' },
+    { locale: 'de' }
   ];
 }
