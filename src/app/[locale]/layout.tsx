@@ -39,10 +39,10 @@ export async function generateMetadata({
   // Fallback di sicurezza
   const currentLocale = ['it', 'en', 'es', 'fr', 'de'].includes(locale) ? locale : 'en';
   
-  // Richiamiamo le traduzioni per il namespace "Metadata" (o come preferisci chiamarlo nei JSON)
+  // Richiamiamo le traduzioni per il namespace "Metadata"
   const t = await getTranslations({ locale: currentLocale, namespace: 'Metadata' });
   
-  const baseUrl = 'https://uneedes-ai.vercel.app'; // CAMBIA con il tuo dominio finale
+  const baseUrl = 'https://uneedes.vercel.app'; 
   
   return {
     metadataBase: new URL(baseUrl),

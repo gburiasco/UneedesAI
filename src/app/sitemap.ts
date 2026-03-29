@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://uneedes-ai.vercel.app';
+const BASE_URL = 'https://uneedes.vercel.app';
 const LOCALES = ['it', 'en', 'es', 'fr', 'de'];
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -19,6 +19,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/'],
       },
     ],
-    sitemap: 'https://uneedes-ai.vercel.app/sitemap.xml',
+    sitemap: 'https://uneedes.vercel.app/sitemap.xml',
   };
 }

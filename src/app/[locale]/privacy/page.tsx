@@ -14,8 +14,8 @@ export async function generateMetadata({
     title: t('privacyTitle'),
     description: t('privacyDescription'),
     alternates: {
-      canonical: `https://uneedes-ai.vercel.app/${locale}/privacy`
-    },
+      canonical: `https://uneedes.vercel.app/${locale}/privacy`
+    }, 
     robots: {
       index: true,  // ✅ Indicizza
       follow: true

@@ -13,7 +13,7 @@ export async function generateMetadata({
     title: t('termsTitle'),
     description: t('termsDescription'),
     alternates: {
-      canonical: `https://uneedes-ai.vercel.app/${locale}/terms`
+      canonical: `https://uneedes.vercel.app/${locale}/terms`
     },
     robots: {
       index: true,  // ✅ Indicizza

@@ -1,7 +1,6 @@
 import { getRequestConfig } from 'next-intl/server';
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  // 1. In Next.js 15, requestLocale è una Promise. Dobbiamo usare 'await'
   let locale = await requestLocale;
   
   // 2. Fallback di sicurezza
