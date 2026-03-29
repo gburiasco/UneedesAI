@@ -1,6 +1,5 @@
-import type { Metadata } from 'next'
-
-import { useTranslations } from 'next-intl';
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata({ 
   params 
@@ -8,16 +7,16 @@ export async function generateMetadata({
   params: Promise<{ locale: string }> 
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await useTranslations('Metadata');
+  const t = await getTranslations({ locale, namespace: 'Metadata' });
   
   return {
     title: t('privacyTitle'),
     description: t('privacyDescription'),
     alternates: {
       canonical: `https://uneedes.vercel.app/${locale}/privacy`
-    }, 
+    },
     robots: {
-      index: true,  // ✅ Indicizza
+      index: true,
       follow: true
     }
   };
